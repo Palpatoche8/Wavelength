@@ -3,9 +3,11 @@
  * Gère la création, la gestion et la suppression des rooms
  */
 
+import { createShuffledDeck } from './cards.js';
+
 class GameManager {
   constructor() {
-    // Map des rooms actives : { roomCode: { players: [], createdAt: Date } }
+    // Map des rooms actives : { roomCode: { players: [], createdAt: Date, game: {...} } }
     this.rooms = new Map();
   }
 
@@ -43,10 +45,12 @@ class GameManager {
         id: playerId,
         name: playerName,
         isHost: true,
-        joinedAt: new Date()
+        joinedAt: new Date(),
+        score: 0
       }],
       createdAt: new Date(),
-      gameState: 'waiting' // waiting, playing, finished
+      gameState: 'waiting', // waiting, playing, revealing, scoring, finished
+      game: null // Données de la partie en cours
     });
 
     console.log(`✅ Room créée: ${roomCode} par ${playerName}`);
@@ -83,7 +87,8 @@ class GameManager {
       id: playerId,
       name: playerName,
       isHost: false,
-      joinedAt: new Date()
+      joinedAt: new Date(),
+      score: 0
     });
 
     console.log(`✅ ${playerName} a rejoint la room ${roomCode}`);
@@ -122,6 +127,238 @@ class GameManager {
     }
 
     console.log(`👋 Joueur ${playerId} a quitté la room ${roomCode}`);
+
+    return room;
+  }
+
+  /**
+   * Démarre une partie dans une room
+   * @param {string} roomCode - Code de la room
+   * @returns {Object|null} Room mise à jour ou null si erreur
+   */
+  startGame(roomCode) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room) {
+      console.log(`❌ Room ${roomCode} introuvable`);
+      return null;
+    }
+
+    if (room.players.length < 2) {
+      console.log(`❌ Pas assez de joueurs dans ${roomCode}`);
+      return null;
+    }
+
+    // Initialiser le jeu
+    const deck = createShuffledDeck();
+
+    room.gameState = 'playing';
+    room.game = {
+      deck: deck,
+      currentCardIndex: 0,
+      currentCard: deck[0],
+      targetAngle: Math.floor(Math.random() * 181), // 0 à 180 degrés
+      psychicIndex: 0, // Index du joueur psychique
+      psychicId: room.players[0].id,
+      currentRound: 1,
+      totalRounds: room.players.length * 2, // 2 tours par joueur
+      guess: null, // Réponse des joueurs
+      clue: null, // Indice donné par le psychique
+      startedAt: new Date()
+    };
+
+    console.log(`🎮 Partie démarrée dans ${roomCode}`);
+    console.log(`   Carte: ${room.game.currentCard.left} ↔ ${room.game.currentCard.right}`);
+    console.log(`   Cible: ${room.game.targetAngle}°`);
+    console.log(`   Psychique: ${room.players[room.game.psychicIndex].name}`);
+
+    return room;
+  }
+
+  /**
+   * Le psychique donne un indice
+   * @param {string} roomCode - Code de la room
+   * @param {string} playerId - ID du psychique
+   * @param {string} clue - Indice donné
+   * @returns {Object|null} Room mise à jour ou null si erreur
+   */
+  submitClue(roomCode, playerId, clue) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room || !room.game) {
+      return null;
+    }
+
+    if (room.game.psychicId !== playerId) {
+      console.log(`❌ ${playerId} n'est pas le psychique`);
+      return null;
+    }
+
+    room.game.clue = clue;
+    console.log(`💡 Indice donné dans ${roomCode}: "${clue}"`);
+
+    return room;
+  }
+
+  /**
+   * Les joueurs soumettent leur réponse (position du cadran)
+   * @param {string} roomCode - Code de la room
+   * @param {number} angle - Angle de la réponse (0-180)
+   * @returns {Object|null} Room mise à jour ou null si erreur
+   */
+  submitGuess(roomCode, angle) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room || !room.game) {
+      return null;
+    }
+
+    if (room.gameState !== 'playing') {
+      return null;
+    }
+
+    room.game.guess = angle;
+    room.gameState = 'revealing';
+
+    console.log(`🎯 Réponse soumise dans ${roomCode}: ${angle}°`);
+
+    return room;
+  }
+
+  /**
+   * Calcule le score selon la distance entre la réponse et la cible
+   * @param {number} targetAngle - Angle cible (0-180)
+   * @param {number} guessAngle - Angle de la réponse (0-180)
+   * @returns {Object} Score et zone
+   */
+  calculateScore(targetAngle, guessAngle) {
+    const distance = Math.abs(targetAngle - guessAngle);
+
+    let points = 0;
+    let zone = 'white';
+
+    if (distance <= 15) {
+      points = 4;
+      zone = 'green';
+    } else if (distance <= 25) {
+      points = 3;
+      zone = 'yellow';
+    } else if (distance <= 35) {
+      points = 2;
+      zone = 'orange';
+    }
+
+    return { points, zone, distance };
+  }
+
+  /**
+   * Révèle le résultat et calcule les scores
+   * @param {string} roomCode - Code de la room
+   * @returns {Object|null} Résultat avec scores
+   */
+  revealResult(roomCode) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room || !room.game || room.gameState !== 'revealing') {
+      return null;
+    }
+
+    const { targetAngle, guess } = room.game;
+    const result = this.calculateScore(targetAngle, guess);
+
+    // Ajouter les points à tous les joueurs (sauf le psychique dans certaines variantes)
+    // Pour cette version, tout le monde gagne les mêmes points
+    room.players.forEach(player => {
+      if (player.id !== room.game.psychicId) {
+        player.score += result.points;
+      }
+    });
+
+    room.gameState = 'scoring';
+    room.game.lastResult = result;
+
+    console.log(`📊 Résultat dans ${roomCode}:`);
+    console.log(`   Cible: ${targetAngle}°, Réponse: ${guess}°`);
+    console.log(`   Distance: ${result.distance}°, Zone: ${result.zone}, Points: ${result.points}`);
+
+    return {
+      room,
+      result: {
+        ...result,
+        targetAngle,
+        guessAngle: guess
+      }
+    };
+  }
+
+  /**
+   * Passe au tour suivant
+   * @param {string} roomCode - Code de la room
+   * @returns {Object|null} Room mise à jour
+   */
+  nextRound(roomCode) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room || !room.game) {
+      return null;
+    }
+
+    const game = room.game;
+
+    // Vérifier si la partie est terminée
+    if (game.currentRound >= game.totalRounds) {
+      room.gameState = 'finished';
+      console.log(`🏁 Partie terminée dans ${roomCode}`);
+      return room;
+    }
+
+    // Passer au joueur psychique suivant
+    game.psychicIndex = (game.psychicIndex + 1) % room.players.length;
+    game.psychicId = room.players[game.psychicIndex].id;
+
+    // Tirer une nouvelle carte
+    game.currentCardIndex = (game.currentCardIndex + 1) % game.deck.length;
+    game.currentCard = game.deck[game.currentCardIndex];
+
+    // Nouvelle cible aléatoire
+    game.targetAngle = Math.floor(Math.random() * 181);
+
+    // Réinitialiser l'état du tour
+    game.guess = null;
+    game.clue = null;
+    game.lastResult = null;
+    game.currentRound++;
+
+    room.gameState = 'playing';
+
+    console.log(`▶️ Tour ${game.currentRound}/${game.totalRounds} dans ${roomCode}`);
+    console.log(`   Psychique: ${room.players[game.psychicIndex].name}`);
+    console.log(`   Carte: ${game.currentCard.left} ↔ ${game.currentCard.right}`);
+
+    return room;
+  }
+
+  /**
+   * Réinitialise une partie pour rejouer
+   * @param {string} roomCode - Code de la room
+   * @returns {Object|null} Room réinitialisée
+   */
+  resetGame(roomCode) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room) {
+      return null;
+    }
+
+    // Réinitialiser les scores
+    room.players.forEach(player => {
+      player.score = 0;
+    });
+
+    room.gameState = 'waiting';
+    room.game = null;
+
+    console.log(`🔄 Partie réinitialisée dans ${roomCode}`);
 
     return room;
   }
