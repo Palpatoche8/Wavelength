@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import HomePage from './components/HomePage';
 import GameRoom from './components/GameRoom';
+import GamePlay from './components/GamePlay';
 
 // URL du serveur backend
 const SOCKET_URL = 'http://localhost:3000';
@@ -40,6 +41,29 @@ function App() {
       newSocket.close();
     };
   }, []);
+
+  // Écouter les événements de jeu pour mettre à jour la room
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('room-updated', (updatedRoom) => {
+      setCurrentRoom(updatedRoom);
+    });
+
+    socket.on('game-started', ({ room }) => {
+      setCurrentRoom(room);
+    });
+
+    socket.on('game-reset', ({ room }) => {
+      setCurrentRoom(room);
+    });
+
+    return () => {
+      socket.off('room-updated');
+      socket.off('game-started');
+      socket.off('game-reset');
+    };
+  }, [socket]);
 
   // Gestion de la création d'une room
   const handleCreateRoom = (name) => {
@@ -112,15 +136,22 @@ function App() {
         </div>
       </div>
 
-      {/* Affichage conditionnel : Page d'accueil ou Room */}
+      {/* Affichage conditionnel : Page d'accueil, Room ou Jeu */}
       {!currentRoom ? (
         <HomePage
           onCreateRoom={handleCreateRoom}
           onJoinRoom={handleJoinRoom}
           isConnected={connectionStatus === 'connected'}
         />
-      ) : (
+      ) : currentRoom.gameState === 'waiting' ? (
         <GameRoom
+          room={currentRoom}
+          socket={socket}
+          playerName={playerName}
+          onLeaveRoom={handleLeaveRoom}
+        />
+      ) : (
+        <GamePlay
           room={currentRoom}
           socket={socket}
           playerName={playerName}

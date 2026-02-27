@@ -43,6 +43,13 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
   const currentPlayer = currentRoom.players.find(p => p.name === playerName);
   const isHost = currentPlayer?.isHost || false;
 
+  // Démarrer la partie
+  const handleStartGame = () => {
+    socket.emit('start-game', {
+      roomCode: currentRoom.code
+    });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
@@ -146,6 +153,7 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
             {isHost && (
               <div className="mt-6">
                 <button
+                  onClick={handleStartGame}
                   disabled={currentRoom.players.length < 2}
                   className={`w-full py-4 px-6 rounded-lg font-bold text-white transition-all ${
                     currentRoom.players.length >= 2

@@ -1,0 +1,66 @@
+/**
+ * Cartes de spectres pour WaveLength
+ * Chaque carte contient deux concepts opposés
+ */
+
+export const CARDS = [
+  { id: 1, left: "Pire Chanson", right: "Meilleure Chanson" },
+  { id: 2, left: "Pire Jeu vidéo", right: "Meilleur Jeu vidéo" },
+  { id: 3, left: "Pire Bonbon", right: "Meilleur Bonbon" },
+  { id: 4, left: "Red Flag", right: "Green Flag" },
+  { id: 5, left: "Pire Dessert", right: "Meilleur Dessert" },
+  { id: 6, left: "Pire Film", right: "Meilleur Film" },
+  { id: 7, left: "Pire Série", right: "Meilleure Série" },
+  { id: 8, left: "Pire Pizza", right: "Meilleure Pizza" },
+  { id: 9, left: "Pire Sport", right: "Meilleur Sport" },
+  { id: 10, left: "Pire Pokémon", right: "Meilleur Pokémon" },
+  { id: 11, left: "Pire Dessin Animé", right: "Meilleur Dessin Animé" },
+  { id: 12, left: "Pire Matière Scolaire", right: "Meilleure Matière Scolaire" },
+  { id: 13, left: "Pire Marque", right: "Meilleure Marque" },
+  { id: 14, left: "Pire Boisson", right: "Meilleure Boisson" },
+  { id: 15, left: "Pire Métro", right: "Meilleur Métro" },
+  { id: 16, left: "Pire Youtubeur/Streameur", right: "Meilleur Youtubeur/Streameur" },
+  { id: 17, left: "Pire FastFood", right: "Meilleur FastFood" },
+  { id: 18, left: "Pire Ville de France", right: "Meilleure Ville de France" },
+  { id: 19, left: "Pire Pays", right: "Meilleur Pays" },
+  { id: 20, left: "Pire Artiste", right: "Meilleur Artiste" },
+  { id: 21, left: "Pire Loisir", right: "Meilleur Loisir" },
+  { id: 22, left: "Pire Animal", right: "Meilleur Animal" },
+  { id: 23, left: "Pire Animal à 1vs1", right: "Meilleur Animal à 1vs1" },
+
+  // Cartes supplémentaires
+  { id: 24, left: "Très Froid", right: "Très Chaud" },
+  { id: 25, left: "Très Ennuyeux", right: "Très Intéressant" },
+  { id: 26, left: "Pas Cher", right: "Très Cher" },
+  { id: 27, left: "Très Facile", right: "Très Difficile" },
+  { id: 28, left: "Détesté", right: "Adoré" },
+  { id: 29, left: "Inutile", right: "Indispensable" },
+  { id: 30, left: "Silencieux", right: "Bruyant" }
+];
+
+/**
+ * Mélange un tableau (algorithme Fisher-Yates)
+ */
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
+ * Tire une carte aléatoire
+ */
+export function drawRandomCard() {
+  const randomIndex = Math.floor(Math.random() * CARDS.length);
+  return CARDS[randomIndex];
+}
+
+/**
+ * Crée un deck mélangé de toutes les cartes
+ */
+export function createShuffledDeck() {
+  return shuffleArray(CARDS);
+}

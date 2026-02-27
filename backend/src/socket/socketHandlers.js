@@ -85,6 +85,145 @@ export function setupSocketHandlers(io) {
       socket.emit('left-room', { success: true });
     });
 
+    // ========== GESTION DU JEU ==========
+
+    // Démarrer la partie
+    socket.on('start-game', ({ roomCode }) => {
+      console.log(`🎮 Demande de démarrage de partie dans ${roomCode}`);
+
+      const room = gameManager.startGame(roomCode);
+
+      if (!room) {
+        socket.emit('start-game-error', {
+          success: false,
+          message: 'Impossible de démarrer la partie'
+        });
+        return;
+      }
+
+      // Envoyer l'état du jeu à tous les joueurs
+      io.to(roomCode).emit('game-started', {
+        success: true,
+        room
+      });
+
+      // Envoyer la cible secrète uniquement au psychique
+      const psychicSocket = io.sockets.sockets.get(room.game.psychicId);
+      if (psychicSocket) {
+        psychicSocket.emit('target-revealed', {
+          targetAngle: room.game.targetAngle
+        });
+      }
+    });
+
+    // Le psychique soumet un indice
+    socket.on('submit-clue', ({ roomCode, clue }) => {
+      console.log(`💡 Indice soumis dans ${roomCode}: "${clue}"`);
+
+      const room = gameManager.submitClue(roomCode, socket.id, clue);
+
+      if (!room) {
+        socket.emit('submit-clue-error', {
+          success: false,
+          message: 'Erreur lors de la soumission de l\'indice'
+        });
+        return;
+      }
+
+      // Informer tous les joueurs de l'indice
+      io.to(roomCode).emit('clue-submitted', {
+        success: true,
+        clue,
+        room
+      });
+    });
+
+    // Les joueurs soumettent leur réponse
+    socket.on('submit-guess', ({ roomCode, angle }) => {
+      console.log(`🎯 Réponse soumise dans ${roomCode}: ${angle}°`);
+
+      const room = gameManager.submitGuess(roomCode, angle);
+
+      if (!room) {
+        socket.emit('submit-guess-error', {
+          success: false,
+          message: 'Erreur lors de la soumission de la réponse'
+        });
+        return;
+      }
+
+      // Passer automatiquement à la révélation
+      const resultData = gameManager.revealResult(roomCode);
+
+      if (resultData) {
+        // Informer tous les joueurs du résultat
+        io.to(roomCode).emit('result-revealed', {
+          success: true,
+          result: resultData.result,
+          room: resultData.room
+        });
+      }
+    });
+
+    // Passer au tour suivant
+    socket.on('next-round', ({ roomCode }) => {
+      console.log(`▶️ Passage au tour suivant dans ${roomCode}`);
+
+      const room = gameManager.nextRound(roomCode);
+
+      if (!room) {
+        socket.emit('next-round-error', {
+          success: false,
+          message: 'Erreur lors du passage au tour suivant'
+        });
+        return;
+      }
+
+      if (room.gameState === 'finished') {
+        // La partie est terminée
+        io.to(roomCode).emit('game-finished', {
+          success: true,
+          room
+        });
+      } else {
+        // Nouveau tour
+        io.to(roomCode).emit('round-started', {
+          success: true,
+          room
+        });
+
+        // Envoyer la nouvelle cible au nouveau psychique
+        const psychicSocket = io.sockets.sockets.get(room.game.psychicId);
+        if (psychicSocket) {
+          psychicSocket.emit('target-revealed', {
+            targetAngle: room.game.targetAngle
+          });
+        }
+      }
+    });
+
+    // Rejouer (réinitialiser la partie)
+    socket.on('reset-game', ({ roomCode }) => {
+      console.log(`🔄 Réinitialisation de la partie dans ${roomCode}`);
+
+      const room = gameManager.resetGame(roomCode);
+
+      if (!room) {
+        socket.emit('reset-game-error', {
+          success: false,
+          message: 'Erreur lors de la réinitialisation'
+        });
+        return;
+      }
+
+      io.to(roomCode).emit('game-reset', {
+        success: true,
+        room
+      });
+    });
+
+    // ========== DÉCONNEXION ==========
+
     // Déconnexion du client
     socket.on('disconnect', () => {
       console.log(`❌ Client déconnecté: ${socket.id}`);
