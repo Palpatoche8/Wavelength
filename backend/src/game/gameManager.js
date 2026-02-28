@@ -157,19 +157,19 @@ class GameManager {
       deck: deck,
       currentCardIndex: 0,
       currentCard: deck[0],
-      targetAngle: Math.floor(Math.random() * 181), // 0 à 180 degrés
+      targetValue: Math.floor(Math.random() * 20) + 1, // 1 à 20
       psychicIndex: 0, // Index du joueur psychique
       psychicId: room.players[0].id,
       currentRound: 1,
       totalRounds: room.players.length * 2, // 2 tours par joueur
-      guess: null, // Réponse des joueurs
+      guessValue: null, // Réponse des joueurs (1-20)
       clue: null, // Indice donné par le psychique
       startedAt: new Date()
     };
 
     console.log(`🎮 Partie démarrée dans ${roomCode}`);
     console.log(`   Carte: ${room.game.currentCard.left} ↔ ${room.game.currentCard.right}`);
-    console.log(`   Cible: ${room.game.targetAngle}°`);
+    console.log(`   Cible: ${room.game.targetValue}`);
     console.log(`   Psychique: ${room.players[room.game.psychicIndex].name}`);
 
     return room;
@@ -201,12 +201,12 @@ class GameManager {
   }
 
   /**
-   * Les joueurs soumettent leur réponse (position du cadran)
+   * Les joueurs soumettent leur réponse (valeur sur l'échelle 1-20)
    * @param {string} roomCode - Code de la room
-   * @param {number} angle - Angle de la réponse (0-180)
+   * @param {number} value - Valeur de la réponse (1-20)
    * @returns {Object|null} Room mise à jour ou null si erreur
    */
-  submitGuess(roomCode, angle) {
+  submitGuess(roomCode, value) {
     const room = this.rooms.get(roomCode);
 
     if (!room || !room.game) {
@@ -217,36 +217,43 @@ class GameManager {
       return null;
     }
 
-    room.game.guess = angle;
+    // Valider que la valeur est entre 1 et 20
+    const clampedValue = Math.max(1, Math.min(20, Math.round(value)));
+
+    room.game.guessValue = clampedValue;
     room.gameState = 'revealing';
 
-    console.log(`🎯 Réponse soumise dans ${roomCode}: ${angle}°`);
+    console.log(`🎯 Réponse soumise dans ${roomCode}: ${clampedValue}`);
 
     return room;
   }
 
   /**
    * Calcule le score selon la distance entre la réponse et la cible
-   * @param {number} targetAngle - Angle cible (0-180)
-   * @param {number} guessAngle - Angle de la réponse (0-180)
+   * @param {number} targetValue - Valeur cible (1-20)
+   * @param {number} guessValue - Valeur de la réponse (1-20)
    * @returns {Object} Score et zone
    */
-  calculateScore(targetAngle, guessAngle) {
-    const distance = Math.abs(targetAngle - guessAngle);
+  calculateScore(targetValue, guessValue) {
+    const distance = Math.abs(targetValue - guessValue);
 
     let points = 0;
     let zone = 'white';
 
-    if (distance <= 15) {
+    if (distance === 0) {
+      // Valeur exacte
       points = 4;
       zone = 'green';
-    } else if (distance <= 25) {
+    } else if (distance === 1) {
+      // ±1 point d'écart
       points = 3;
       zone = 'yellow';
-    } else if (distance <= 35) {
+    } else if (distance === 2) {
+      // ±2 points d'écart
       points = 2;
       zone = 'orange';
     }
+    // distance > 2 : 0 point, zone white
 
     return { points, zone, distance };
   }
@@ -263,11 +270,10 @@ class GameManager {
       return null;
     }
 
-    const { targetAngle, guess } = room.game;
-    const result = this.calculateScore(targetAngle, guess);
+    const { targetValue, guessValue } = room.game;
+    const result = this.calculateScore(targetValue, guessValue);
 
-    // Ajouter les points à tous les joueurs (sauf le psychique dans certaines variantes)
-    // Pour cette version, tout le monde gagne les mêmes points
+    // Ajouter les points à tous les joueurs (sauf le psychique)
     room.players.forEach(player => {
       if (player.id !== room.game.psychicId) {
         player.score += result.points;
@@ -278,15 +284,15 @@ class GameManager {
     room.game.lastResult = result;
 
     console.log(`📊 Résultat dans ${roomCode}:`);
-    console.log(`   Cible: ${targetAngle}°, Réponse: ${guess}°`);
-    console.log(`   Distance: ${result.distance}°, Zone: ${result.zone}, Points: ${result.points}`);
+    console.log(`   Cible: ${targetValue}, Réponse: ${guessValue}`);
+    console.log(`   Distance: ${result.distance}, Zone: ${result.zone}, Points: ${result.points}`);
 
     return {
       room,
       result: {
         ...result,
-        targetAngle,
-        guessAngle: guess
+        targetValue,
+        guessValue
       }
     };
   }
@@ -320,11 +326,11 @@ class GameManager {
     game.currentCardIndex = (game.currentCardIndex + 1) % game.deck.length;
     game.currentCard = game.deck[game.currentCardIndex];
 
-    // Nouvelle cible aléatoire
-    game.targetAngle = Math.floor(Math.random() * 181);
+    // Nouvelle cible aléatoire (1-20)
+    game.targetValue = Math.floor(Math.random() * 20) + 1;
 
     // Réinitialiser l'état du tour
-    game.guess = null;
+    game.guessValue = null;
     game.clue = null;
     game.lastResult = null;
     game.currentRound++;

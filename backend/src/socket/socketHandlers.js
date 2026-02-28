@@ -111,7 +111,7 @@ export function setupSocketHandlers(io) {
       const psychicSocket = io.sockets.sockets.get(room.game.psychicId);
       if (psychicSocket) {
         psychicSocket.emit('target-revealed', {
-          targetAngle: room.game.targetAngle
+          targetValue: room.game.targetValue
         });
       }
     });
@@ -139,10 +139,10 @@ export function setupSocketHandlers(io) {
     });
 
     // Les joueurs soumettent leur réponse
-    socket.on('submit-guess', ({ roomCode, angle }) => {
-      console.log(`🎯 Réponse soumise dans ${roomCode}: ${angle}°`);
+    socket.on('submit-guess', ({ roomCode, value }) => {
+      console.log(`🎯 Réponse soumise dans ${roomCode}: ${value}`);
 
-      const room = gameManager.submitGuess(roomCode, angle);
+      const room = gameManager.submitGuess(roomCode, value);
 
       if (!room) {
         socket.emit('submit-guess-error', {
@@ -196,7 +196,7 @@ export function setupSocketHandlers(io) {
         const psychicSocket = io.sockets.sockets.get(room.game.psychicId);
         if (psychicSocket) {
           psychicSocket.emit('target-revealed', {
-            targetAngle: room.game.targetAngle
+            targetValue: room.game.targetValue
           });
         }
       }
