@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Card from './Card';
 import Dial from './Dial';
 
 /**
@@ -280,8 +279,31 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
           {/* Colonne centrale - Jeu */}
           <div className="lg:col-span-2">
-            {/* Carte actuelle */}
-            {game?.currentCard && <Card card={game.currentCard} />}
+            {/* Carte actuelle - SEULEMENT le texte, pas de spectre */}
+            {game?.currentCard && (
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h3 className="text-center text-lg font-semibold text-gray-700 mb-3">
+                  Thème
+                </h3>
+                <div className="flex justify-between items-center gap-4">
+                  <div className="flex-1 text-center">
+                    <div className="bg-orange-100 rounded-lg p-4 border-2 border-orange-300">
+                      <p className="text-sm font-bold text-orange-800">
+                        {game.currentCard.left}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-2xl text-gray-400">↔</div>
+                  <div className="flex-1 text-center">
+                    <div className="bg-blue-100 rounded-lg p-4 border-2 border-blue-300">
+                      <p className="text-sm font-bold text-blue-800">
+                        {game.currentCard.right}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Zone psychique */}
             {isPsychic && !game?.clue && (
@@ -384,17 +406,32 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                   disabled={true}
                 />
 
-                {/* Score */}
-                <div className={`mt-6 p-6 rounded-xl border-4 ${getZoneColor(lastResult.zone)}`}>
+                {/* Affichage des valeurs - 2 encadrés côte à côte */}
+                <div className="grid grid-cols-2 gap-4 mt-6">
+                  {/* Valeur sélectionnée */}
+                  <div className="bg-white rounded-xl shadow-md border-2 border-gray-300 p-6 text-center">
+                    <p className="text-sm text-gray-600 mb-2 font-medium">Valeur sélectionnée</p>
+                    <p className="text-6xl font-bold text-gray-800">{lastResult.guessValue}</p>
+                  </div>
+
+                  {/* Cible */}
+                  <div className="bg-white rounded-xl shadow-md border-2 border-red-300 p-6 text-center">
+                    <p className="text-sm text-red-600 mb-2 font-medium">🎯 Cible</p>
+                    <p className="text-6xl font-bold text-red-600">{lastResult.targetValue}</p>
+                  </div>
+                </div>
+
+                {/* Score - Grand encadré */}
+                <div className={`mt-4 p-8 rounded-xl border-4 ${getZoneColor(lastResult.zone)}`}>
                   <div className="text-center">
-                    <p className="text-sm font-semibold mb-2">Score obtenu</p>
-                    <p className="text-6xl font-bold mb-2">
+                    <p className="text-sm font-semibold mb-3 uppercase tracking-wide">Score obtenu</p>
+                    <p className="text-7xl font-bold mb-3">
                       {lastResult.points} pts
                     </p>
-                    <p className="text-lg mb-2">
+                    <p className="text-2xl font-semibold mb-2">
                       {getDistanceMessage(lastResult.distance)}
                     </p>
-                    <p className="text-sm">
+                    <p className="text-base opacity-75">
                       Distance: <strong>{lastResult.distance}</strong>
                       {' '}•{' '}
                       Zone: <strong className="uppercase">{lastResult.zone}</strong>

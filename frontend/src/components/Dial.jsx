@@ -16,12 +16,12 @@ function Dial({
 
   // Conversion valeur (1-20) ↔ angle (0-180°)
   const valueToAngle = (val) => {
-    // Valeur 1 = 0°, Valeur 20 = 180°
+    // Valeur 1 = 0°, Valeur 10 = 90°, Valeur 20 = 180°
     return ((val - 1) / 19) * 180;
   };
 
   const angleToValue = (angle) => {
-    // Angle 0° = 1, Angle 180° = 20
+    // Angle 0° = 1, Angle 90° = 10, Angle 180° = 20
     const rawValue = (angle / 180) * 19 + 1;
     // Snapping : arrondir à la valeur la plus proche
     return Math.max(1, Math.min(20, Math.round(rawValue)));
@@ -115,13 +115,15 @@ function Dial({
   }, [isDragging, value]);
 
   // Calculer la rotation de l'aiguille
-  const needleRotation = valueToAngle(value);
+  // CORRECTION : Pour un demi-cercle avec origin en bas, rotate(0) = haut
+  // Donc on doit soustraire 90° pour que valeur 10 soit au centre (haut)
+  const needleRotation = valueToAngle(value) - 90;
 
-  // Calculer les zones de scoring si la cible est révélée
+  // Calculer la couleur de la zone selon la distance (pour la révélation)
   const getZoneColor = (distance) => {
-    if (distance === 0) return 'rgba(34, 197, 94, 0.4)'; // Vert
-    if (distance === 1) return 'rgba(234, 179, 8, 0.4)'; // Jaune
-    if (distance === 2) return 'rgba(249, 115, 22, 0.4)'; // Orange
+    if (distance === 0) return '#22c55e'; // Vert
+    if (distance === 1) return '#eab308'; // Jaune
+    if (distance === 2) return '#f97316'; // Orange
     return 'transparent';
   };
 
@@ -137,7 +139,7 @@ function Dial({
         {/* Semi-cercle de base */}
         <div className="absolute inset-0">
           <svg width="100%" height="100%" viewBox="0 0 384 192">
-            {/* Arc de fond */}
+            {/* Arc de fond (blanc/gris) */}
             <path
               d="M 24 192 A 168 168 0 0 1 360 192"
               fill="none"
@@ -145,35 +147,55 @@ function Dial({
               strokeWidth="48"
             />
 
-            {/* Dégradé de couleur sur le spectre */}
-            <defs>
-              <linearGradient id="spectrumGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#f97316" /> {/* Orange */}
-                <stop offset="50%" stopColor="#fbbf24" /> {/* Jaune */}
-                <stop offset="100%" stopColor="#3b82f6" /> {/* Bleu */}
-              </linearGradient>
-            </defs>
-
-            {/* Arc avec dégradé */}
+            {/* Arc intérieur (blanc) pour l'effet 3D */}
             <path
               d="M 24 192 A 168 168 0 0 1 360 192"
               fill="none"
-              stroke="url(#spectrumGradient)"
+              stroke="#f9fafb"
               strokeWidth="40"
-              opacity="0.8"
             />
 
-            {/* Markers pour chaque valeur (1-20) */}
-            {Array.from({ length: 20 }, (_, i) => i + 1).map((val) => {
+            {/* Zones colorées révélées (seulement lors de la révélation) */}
+            {showTarget && targetValue !== null && (
+              <>
+                {/* Zone verte (valeur exacte) */}
+                {Math.abs(value - targetValue) === 0 && (
+                  <path
+                    d={`M 192 192 L ${192 + Math.cos(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 144} ${192 - Math.sin(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 144} A 5 5 0 0 0 ${192 + Math.cos(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 144} ${192 - Math.sin(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 144} Z`}
+                    fill="rgba(34, 197, 94, 0.3)"
+                    stroke="none"
+                  />
+                )}
+
+                {/* Ligne de la cible (rouge) */}
+                <line
+                  x1="192"
+                  y1="192"
+                  x2={192 + Math.cos(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 168}
+                  y2={192 - Math.sin(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 168}
+                  stroke="#ef4444"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                />
+
+                {/* Cercle rouge à la fin de la ligne cible */}
+                <circle
+                  cx={192 + Math.cos(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 168}
+                  cy={192 - Math.sin(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 168}
+                  r="12"
+                  fill="#ef4444"
+                />
+              </>
+            )}
+
+            {/* Markers pour les valeurs principales */}
+            {[1, 5, 10, 15, 20].map((val) => {
               const angle = valueToAngle(val);
               const radian = (Math.PI - (angle * Math.PI) / 180);
               const x1 = 192 + Math.cos(radian) * 144;
               const y1 = 192 - Math.sin(radian) * 144;
               const x2 = 192 + Math.cos(radian) * 160;
               const y2 = 192 - Math.sin(radian) * 160;
-
-              // Marker plus grand pour les valeurs 1, 5, 10, 15, 20
-              const isMajor = val % 5 === 0 || val === 1;
 
               return (
                 <g key={val}>
@@ -182,66 +204,49 @@ function Dial({
                     y1={y1}
                     x2={x2}
                     y2={y2}
-                    stroke={value === val ? '#f59e0b' : '#6b7280'}
-                    strokeWidth={isMajor ? 3 : 2}
+                    stroke="#6b7280"
+                    strokeWidth="3"
                   />
-                  {isMajor && (
-                    <text
-                      x={192 + Math.cos(radian) * 175}
-                      y={192 - Math.sin(radian) * 175}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      className="text-xs font-bold fill-gray-700"
-                    >
-                      {val}
-                    </text>
-                  )}
+                  <text
+                    x={192 + Math.cos(radian) * 175}
+                    y={192 - Math.sin(radian) * 175}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="text-sm font-bold fill-gray-700"
+                  >
+                    {val}
+                  </text>
                 </g>
               );
             })}
 
-            {/* Zones de scoring révélées */}
-            {showTarget && targetValue !== null && (
-              <>
-                {/* Zone verte (valeur exacte) */}
-                <path
-                  d={`M 192 192 L ${192 + Math.cos(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 144} ${192 - Math.sin(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 144} A 144 144 0 0 0 ${192 + Math.cos(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 144} ${192 - Math.sin(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 144} Z`}
-                  fill={getZoneColor(0)}
-                  stroke="none"
-                />
+            {/* Petits markers pour toutes les autres valeurs */}
+            {Array.from({ length: 20 }, (_, i) => i + 1)
+              .filter(v => ![1, 5, 10, 15, 20].includes(v))
+              .map((val) => {
+                const angle = valueToAngle(val);
+                const radian = (Math.PI - (angle * Math.PI) / 180);
+                const x1 = 192 + Math.cos(radian) * 150;
+                const y1 = 192 - Math.sin(radian) * 150;
+                const x2 = 192 + Math.cos(radian) * 160;
+                const y2 = 192 - Math.sin(radian) * 160;
 
-                {/* Zones jaunes (±1) */}
-                {[targetValue - 1, targetValue + 1].map((zoneVal) => {
-                  if (zoneVal < 1 || zoneVal > 20) return null;
-                  const angle1 = valueToAngle(zoneVal);
-                  const angle2 = valueToAngle(zoneVal);
-                  return (
-                    <circle
-                      key={zoneVal}
-                      cx={192 + Math.cos(Math.PI - (angle1 * Math.PI) / 180) * 120}
-                      cy={192 - Math.sin(Math.PI - (angle1 * Math.PI) / 180) * 120}
-                      r="20"
-                      fill={getZoneColor(1)}
-                      stroke="none"
-                    />
-                  );
-                })}
-
-                {/* Ligne de la cible */}
-                <line
-                  x1="192"
-                  y1="192"
-                  x2={192 + Math.cos(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 160}
-                  y2={192 - Math.sin(Math.PI - (valueToAngle(targetValue) * Math.PI) / 180) * 160}
-                  stroke="#ef4444"
-                  strokeWidth="4"
-                />
-              </>
-            )}
+                return (
+                  <line
+                    key={val}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke="#9ca3af"
+                    strokeWidth="2"
+                  />
+                );
+              })}
           </svg>
         </div>
 
-        {/* Aiguille */}
+        {/* Aiguille - CORRECTION: rotate(needleRotation - 90) */}
         <div
           className="absolute bottom-0 left-1/2 origin-bottom transition-transform duration-150"
           style={{
@@ -249,47 +254,32 @@ function Dial({
             height: '150px',
             background: disabled
               ? 'linear-gradient(to top, #6b7280, #9ca3af)'
-              : 'linear-gradient(to top, #f59e0b, #fbbf24)',
+              : 'linear-gradient(to top, #6b7280, #d1d5db)',
             transform: `translateX(-50%) rotate(${needleRotation}deg)`,
             transformOrigin: 'bottom center',
-            boxShadow: '0 0 12px rgba(0, 0, 0, 0.3)',
+            boxShadow: '0 0 8px rgba(0, 0, 0, 0.2)',
             pointerEvents: 'none'
           }}
         >
           {/* Poignée de l'aiguille */}
           <div className={`absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 ${
-            disabled ? 'bg-gray-400' : 'bg-gradient-to-br from-orange-400 to-orange-600'
-          } rounded-full flex items-center justify-center shadow-xl border-4 border-white ${
+            disabled ? 'bg-gray-400' : 'bg-white border-4 border-gray-400'
+          } rounded-full flex items-center justify-center shadow-xl ${
             !disabled && 'hover:scale-110 transition-transform cursor-grab active:cursor-grabbing'
           }`}>
-            <div className="text-white text-2xl font-bold">{value}</div>
+            <div className={`text-2xl font-bold ${disabled ? 'text-white' : 'text-gray-700'}`}>
+              {value}
+            </div>
           </div>
         </div>
 
         {/* Point central */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-5 bg-gray-800 rounded-full shadow-lg z-10"></div>
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-6 bg-red-500 rounded-full shadow-lg z-10"></div>
       </div>
 
-      {/* Affichage de la valeur */}
+      {/* Affichage simple de la valeur */}
       <div className="mt-8 text-center">
-        <div className="bg-white rounded-xl shadow-lg px-8 py-4 inline-block border-2 border-orange-200">
-          <p className="text-sm text-gray-600 mb-1 font-medium">Valeur sélectionnée</p>
-          <p className="text-5xl font-bold text-orange-600">{value}</p>
-          <p className="text-xs text-gray-500 mt-1">sur une échelle de 1 à 20</p>
-        </div>
-
-        {showTarget && targetValue !== null && (
-          <div className="mt-4 bg-red-50 rounded-xl shadow-lg px-8 py-4 inline-block border-4 border-red-300">
-            <p className="text-sm text-red-600 mb-1 font-medium">🎯 Cible secrète</p>
-            <p className="text-5xl font-bold text-red-600">{targetValue}</p>
-            <p className="text-sm text-red-500 mt-2">
-              Distance: <strong>{Math.abs(value - targetValue)}</strong>
-              {Math.abs(value - targetValue) === 0 && ' - 🎉 PARFAIT !'}
-              {Math.abs(value - targetValue) === 1 && ' - Très proche !'}
-              {Math.abs(value - targetValue) === 2 && ' - Proche'}
-            </p>
-          </div>
-        )}
+        <p className="text-sm text-gray-500">Positionnez le curseur entre 1 et 20</p>
       </div>
     </div>
   );
