@@ -7,9 +7,9 @@ import Dial from './Dial';
  */
 function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   const [currentRoom, setCurrentRoom] = useState(room);
-  const [dialAngle, setDialAngle] = useState(90);
+  const [dialValue, setDialValue] = useState(10); // Valeur entre 1-20, initialisée à 10
   const [clueText, setClueText] = useState('');
-  const [targetAngle, setTargetAngle] = useState(null);
+  const [targetValue, setTargetValue] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState(null);
 
@@ -32,14 +32,14 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       setCurrentRoom(updatedRoom);
       setShowResult(false);
       setLastResult(null);
-      setDialAngle(90);
+      setDialValue(10);
       setClueText('');
     });
 
     // Cible révélée (uniquement pour le psychique)
-    socket.on('target-revealed', ({ targetAngle: target }) => {
-      setTargetAngle(target);
-      setDialAngle(target); // Positionner le cadran sur la cible pour le psychique
+    socket.on('target-revealed', ({ targetValue: target }) => {
+      setTargetValue(target);
+      // Le psychique voit la cible mais ne peut pas bouger le cadran
     });
 
     // Indice soumis
@@ -53,7 +53,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       setLastResult(result);
       setShowResult(true);
       if (!isPsychic) {
-        setTargetAngle(result.targetAngle);
+        setTargetValue(result.targetValue);
       }
     });
 
@@ -62,9 +62,9 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       setCurrentRoom(updatedRoom);
       setShowResult(false);
       setLastResult(null);
-      setDialAngle(90);
+      setDialValue(10);
       setClueText('');
-      setTargetAngle(null);
+      setTargetValue(null);
     });
 
     // Partie terminée
@@ -77,9 +77,9 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       setCurrentRoom(updatedRoom);
       setShowResult(false);
       setLastResult(null);
-      setDialAngle(90);
+      setDialValue(10);
       setClueText('');
-      setTargetAngle(null);
+      setTargetValue(null);
     });
 
     return () => {
@@ -111,7 +111,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   const handleSubmitGuess = () => {
     socket.emit('submit-guess', {
       roomCode: currentRoom.code,
-      angle: dialAngle
+      value: dialValue
     });
   };
 
@@ -141,6 +141,14 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       default:
         return 'bg-gray-100 border-gray-500 text-gray-800';
     }
+  };
+
+  // Obtenir le message selon la distance
+  const getDistanceMessage = (distance) => {
+    if (distance === 0) return '🎉 PARFAIT ! Valeur exacte !';
+    if (distance === 1) return '👍 Très proche !';
+    if (distance === 2) return '👌 Proche';
+    return '❌ Trop loin...';
   };
 
   // Affichage selon l'état du jeu
@@ -281,9 +289,12 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 <h3 className="text-xl font-bold text-purple-800 mb-4">
                   🔮 Vous êtes le Psychique !
                 </h3>
-                <p className="text-gray-700 mb-4">
-                  La cible secrète est à <strong>{targetAngle}°</strong>.
-                  Donnez un indice pour aider les autres joueurs à deviner !
+                <p className="text-gray-700 mb-2">
+                  La cible secrète est : <strong className="text-3xl text-purple-900">{targetValue}</strong>
+                </p>
+                <p className="text-sm text-gray-600 mb-4">
+                  Donnez un indice pour aider votre équipe à deviner cette valeur (entre 1 et 20).
+                  Plus votre équipe se rapproche de la cible, plus vous gagnez de points !
                 </p>
 
                 <div className="flex gap-3">
@@ -294,6 +305,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                     placeholder="Votre indice..."
                     maxLength={50}
                     className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                    onKeyPress={(e) => e.key === 'Enter' && handleSubmitClue()}
                   />
                   <button
                     onClick={handleSubmitClue}
@@ -319,9 +331,9 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
             {!showResult && (
               <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
                 <Dial
-                  angle={dialAngle}
-                  onAngleChange={setDialAngle}
-                  targetAngle={isPsychic ? targetAngle : null}
+                  value={dialValue}
+                  onValueChange={setDialValue}
+                  targetValue={isPsychic ? targetValue : null}
                   showTarget={isPsychic}
                   disabled={isPsychic || !game?.clue}
                 />
@@ -333,7 +345,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                       onClick={handleSubmitGuess}
                       className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold text-lg hover:from-green-600 hover:to-emerald-700 transition shadow-lg"
                     >
-                      ✓ Valider la réponse
+                      ✓ Valider la réponse : {dialValue}
                     </button>
                   </div>
                 )}
@@ -341,7 +353,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 {isPsychic && (
                   <div className="mt-6 text-center">
                     <p className="text-gray-600 text-sm">
-                      Vous êtes le psychique. Attendez que les autres joueurs positionnent le cadran.
+                      Vous êtes le psychique. Attendez que votre équipe positionne le curseur.
                     </p>
                   </div>
                 )}
@@ -365,9 +377,9 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
                 {/* Cadran avec cible révélée */}
                 <Dial
-                  angle={lastResult.guessAngle}
-                  onAngleChange={() => {}}
-                  targetAngle={lastResult.targetAngle}
+                  value={lastResult.guessValue}
+                  onValueChange={() => {}}
+                  targetValue={lastResult.targetValue}
                   showTarget={true}
                   disabled={true}
                 />
@@ -379,11 +391,13 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                     <p className="text-6xl font-bold mb-2">
                       {lastResult.points} pts
                     </p>
-                    <p className="text-lg">
-                      Zone: <strong className="uppercase">{lastResult.zone}</strong>
+                    <p className="text-lg mb-2">
+                      {getDistanceMessage(lastResult.distance)}
                     </p>
-                    <p className="text-sm mt-2">
-                      Distance: {lastResult.distance}°
+                    <p className="text-sm">
+                      Distance: <strong>{lastResult.distance}</strong>
+                      {' '}•{' '}
+                      Zone: <strong className="uppercase">{lastResult.zone}</strong>
                     </p>
                   </div>
                 </div>
