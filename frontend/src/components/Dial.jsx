@@ -9,6 +9,7 @@ function Dial({
   onValueChange,
   targetValue = null,
   showTarget = false,
+  showColoredZones = false,
   disabled = false
 }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -39,7 +40,8 @@ function Dial({
     const deltaY = centerY - clientY; // Inverser Y car le haut de l'écran = 0
 
     // Calculer l'angle en radians puis en degrés
-    let angleRad = Math.atan2(deltaY, deltaX);
+    // CORRECTION: Inverser deltaX pour inverser le sens du curseur
+    let angleRad = Math.atan2(deltaY, -deltaX);
     let angleDeg = angleRad * (180 / Math.PI);
 
     // Limiter l'angle entre 0 et 180
@@ -154,6 +156,89 @@ function Dial({
               stroke="#f9fafb"
               strokeWidth="40"
             />
+
+            {/* Zones colorées pour le psychique (avant de donner l'indice) */}
+            {showColoredZones && targetValue !== null && (
+              <>
+                {/* Zone orange (±2) - 2 points */}
+                {(() => {
+                  const targetAngle = valueToAngle(targetValue);
+                  const minVal = Math.max(1, targetValue - 2);
+                  const maxVal = Math.min(20, targetValue + 2);
+                  const startAngle = valueToAngle(minVal);
+                  const endAngle = valueToAngle(maxVal);
+
+                  const startRad = (Math.PI - (startAngle * Math.PI) / 180);
+                  const endRad = (Math.PI - (endAngle * Math.PI) / 180);
+
+                  const x1 = 192 + Math.cos(startRad) * 120;
+                  const y1 = 192 - Math.sin(startRad) * 120;
+                  const x2 = 192 + Math.cos(endRad) * 120;
+                  const y2 = 192 - Math.sin(endRad) * 120;
+
+                  const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
+
+                  return (
+                    <path
+                      d={`M 192 192 L ${x1} ${y1} A 120 120 0 ${largeArc} 0 ${x2} ${y2} Z`}
+                      fill="rgba(249, 115, 22, 0.25)"
+                      stroke="none"
+                    />
+                  );
+                })()}
+
+                {/* Zone jaune (±1) - 3 points */}
+                {(() => {
+                  const targetAngle = valueToAngle(targetValue);
+                  const minVal = Math.max(1, targetValue - 1);
+                  const maxVal = Math.min(20, targetValue + 1);
+                  const startAngle = valueToAngle(minVal);
+                  const endAngle = valueToAngle(maxVal);
+
+                  const startRad = (Math.PI - (startAngle * Math.PI) / 180);
+                  const endRad = (Math.PI - (endAngle * Math.PI) / 180);
+
+                  const x1 = 192 + Math.cos(startRad) * 120;
+                  const y1 = 192 - Math.sin(startRad) * 120;
+                  const x2 = 192 + Math.cos(endRad) * 120;
+                  const y2 = 192 - Math.sin(endRad) * 120;
+
+                  const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
+
+                  return (
+                    <path
+                      d={`M 192 192 L ${x1} ${y1} A 120 120 0 ${largeArc} 0 ${x2} ${y2} Z`}
+                      fill="rgba(234, 179, 8, 0.35)"
+                      stroke="none"
+                    />
+                  );
+                })()}
+
+                {/* Zone verte (valeur exacte) - 4 points */}
+                {(() => {
+                  const targetAngle = valueToAngle(targetValue);
+                  const spreadAngle = 2; // Petit angle pour montrer la zone exacte
+                  const startAngle = Math.max(0, targetAngle - spreadAngle);
+                  const endAngle = Math.min(180, targetAngle + spreadAngle);
+
+                  const startRad = (Math.PI - (startAngle * Math.PI) / 180);
+                  const endRad = (Math.PI - (endAngle * Math.PI) / 180);
+
+                  const x1 = 192 + Math.cos(startRad) * 120;
+                  const y1 = 192 - Math.sin(startRad) * 120;
+                  const x2 = 192 + Math.cos(endRad) * 120;
+                  const y2 = 192 - Math.sin(endRad) * 120;
+
+                  return (
+                    <path
+                      d={`M 192 192 L ${x1} ${y1} A 120 120 0 0 0 ${x2} ${y2} Z`}
+                      fill="rgba(34, 197, 94, 0.45)"
+                      stroke="none"
+                    />
+                  );
+                })()}
+              </>
+            )}
 
             {/* Zones colorées révélées (seulement lors de la révélation) */}
             {showTarget && targetValue !== null && (
