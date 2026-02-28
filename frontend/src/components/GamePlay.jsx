@@ -312,7 +312,9 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                   🔮 Vous êtes le Psychique !
                 </h3>
                 <p className="text-gray-700 mb-2">
-                  La cible secrète est : <strong className="text-3xl text-purple-900">{targetValue}</strong>
+                  La cible secrète est : <strong className="text-3xl text-purple-900">
+                    {targetValue !== null ? targetValue : '...'}
+                  </strong>
                 </p>
                 <p className="text-sm text-gray-600 mb-4">
                   Donnez un indice pour aider votre équipe à deviner cette valeur (entre 1 et 20).
@@ -357,6 +359,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                   onValueChange={setDialValue}
                   targetValue={isPsychic ? targetValue : null}
                   showTarget={isPsychic}
+                  showColoredZones={isPsychic && !game?.clue}
                   disabled={isPsychic || !game?.clue}
                 />
 
