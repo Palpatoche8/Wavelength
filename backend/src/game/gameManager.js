@@ -4,10 +4,12 @@
  */
 
 import { createShuffledDeck } from './cards.js';
+import timerManager from './timerManager.js';
+import customCardsManager from './customCardsManager.js';
 
 class GameManager {
   constructor() {
-    // Map des rooms actives : { roomCode: { players: [], createdAt: Date, game: {...} } }
+    // Map des rooms actives : { roomCode: { players: [], createdAt: Date, game: {...}, settings: {...} } }
     this.rooms = new Map();
   }
 
@@ -50,7 +52,19 @@ class GameManager {
       }],
       createdAt: new Date(),
       gameState: 'waiting', // waiting, playing, revealing, scoring, finished
-      game: null // Données de la partie en cours
+      game: null, // Données de la partie en cours
+      settings: {
+        // Paramètres par défaut
+        timerEnabled: false,
+        timerDuration: null, // null, 30, 60, 90
+        totalRounds: null, // null (= 2 * nb joueurs), 5, 10, 15
+        difficulty: 'normal', // easy, normal, hard
+        mode: 'coop', // coop, teams
+        soundEnabled: true,
+        animationsEnabled: true,
+        customCardsEnabled: false,
+        customCardIds: []
+      }
     });
 
     console.log(`✅ Room créée: ${roomCode} par ${playerName}`);
@@ -112,8 +126,9 @@ class GameManager {
     // Retire le joueur de la liste
     room.players = room.players.filter(p => p.id !== playerId);
 
-    // Si la room est vide, la supprimer
+    // Si la room est vide, la supprimer et arrêter le timer
     if (room.players.length === 0) {
+      timerManager.stopTimer(roomCode);
       this.rooms.delete(roomCode);
       console.log(`🗑️ Room ${roomCode} supprimée (vide)`);
       return null;
@@ -134,9 +149,10 @@ class GameManager {
   /**
    * Démarre une partie dans une room
    * @param {string} roomCode - Code de la room
+   * @param {Object} settings - Paramètres optionnels de la partie
    * @returns {Object|null} Room mise à jour ou null si erreur
    */
-  startGame(roomCode) {
+  startGame(roomCode, settings = {}) {
     const room = this.rooms.get(roomCode);
 
     if (!room) {
@@ -149,6 +165,22 @@ class GameManager {
       return null;
     }
 
+    // Fusionner les settings fournis avec les settings actuels de la room
+    if (settings && Object.keys(settings).length > 0) {
+      room.settings = { ...room.settings, ...settings };
+    }
+
+    // Initialiser le jeu avec custom cards si activées
+    const customCards = room.settings.customCardsEnabled
+      ? customCardsManager.getCards(roomCode)
+      : [];
+    const deck = createShuffledDeck(customCards);
+
+    // Choisir psychique aléatoire au démarrage
+    const randomPsychicIndex = Math.floor(Math.random() * room.players.length);
+
+    // Calculer totalRounds : utiliser settings.totalRounds si défini, sinon 2 * nb joueurs
+    const totalRounds = room.settings.totalRounds || (room.players.length * 2);
     // Initialiser le jeu
     const deck = createShuffledDeck();
     const randomPsychicIndex = Math.floor(Math.random() * room.players.length); // ← Ajoute cette ligne
@@ -159,19 +191,29 @@ class GameManager {
       currentCardIndex: 0,
       currentCard: deck[0],
       targetValue: Math.floor(Math.random() * 20) + 1, // 1 à 20
-      psychicIndex: randomPsychicIndex, // ← Utilise la variable
-      psychicId: room.players[randomPsychicIndex].id, // ← Utilise la variable
-      currentRound: 0,
-      totalRounds: room.players.length * 2, // 2 tours par joueur
-      guessValue: null,
-      clue: null,
-      startedAt: new Date()
+      psychicIndex: randomPsychicIndex,
+      psychicId: room.players[randomPsychicIndex].id,
+      currentRound: 1,
+      totalRounds: totalRounds,
+      guessValue: null, // Réponse des joueurs (1-20)
+      clue: null, // Indice donné par le psychique
+      startedAt: new Date(),
+      // NEW: Timer fields
+      roundStartTime: null,
+      roundTimeLimit: room.settings.timerDuration,
+      timerExpired: false
     };
 
     console.log(`🎮 Partie démarrée dans ${roomCode}`);
     console.log(`   Carte: ${room.game.currentCard.left} ↔ ${room.game.currentCard.right}`);
     console.log(`   Cible: ${room.game.targetValue}`);
     console.log(`   Psychique: ${room.players[room.game.psychicIndex].name}`);
+    console.log(`   Paramètres: timer=${room.settings.timerEnabled}, difficulté=${room.settings.difficulty}, tours=${totalRounds}`);
+
+    // Démarrer le timer du premier round si activé
+    if (room.settings.timerEnabled && room.settings.timerDuration) {
+      this.startRoundTimer(roomCode);
+    }
 
     return room;
   }
@@ -233,28 +275,51 @@ class GameManager {
    * Calcule le score selon la distance entre la réponse et la cible
    * @param {number} targetValue - Valeur cible (1-20)
    * @param {number} guessValue - Valeur de la réponse (1-20)
+   * @param {string} difficulty - Difficulté (easy, normal, hard)
    * @returns {Object} Score et zone
    */
-  calculateScore(targetValue, guessValue) {
+  calculateScore(targetValue, guessValue, difficulty = 'normal') {
     const distance = Math.abs(targetValue - guessValue);
 
     let points = 0;
     let zone = 'white';
 
-    if (distance === 0) {
-      // Valeur exacte
+    // Ajuster les seuils selon la difficulté
+    let greenThreshold, yellowThreshold, orangeThreshold;
+
+    switch (difficulty) {
+      case 'easy':
+        // Plus tolérant
+        greenThreshold = 1;  // 0-1
+        yellowThreshold = 3; // 2-3
+        orangeThreshold = 5; // 4-5
+        break;
+      case 'hard':
+        // Plus strict
+        greenThreshold = 0;  // 0 uniquement
+        yellowThreshold = 1; // 1 uniquement
+        orangeThreshold = 2; // 2 uniquement
+        break;
+      case 'normal':
+      default:
+        // Standard
+        greenThreshold = 0;  // 0
+        yellowThreshold = 1; // 1
+        orangeThreshold = 2; // 2
+        break;
+    }
+
+    if (distance <= greenThreshold) {
       points = 4;
       zone = 'green';
-    } else if (distance === 1) {
-      // ±1 point d'écart
+    } else if (distance <= yellowThreshold) {
       points = 3;
       zone = 'yellow';
-    } else if (distance === 2) {
-      // ±2 points d'écart
+    } else if (distance <= orangeThreshold) {
       points = 2;
       zone = 'orange';
     }
-    // distance > 2 : 0 point, zone white
+    // distance > orangeThreshold : 0 point, zone white
 
     return { points, zone, distance };
   }
@@ -271,8 +336,12 @@ class GameManager {
       return null;
     }
 
+    // Arrêter le timer du round en cours
+    timerManager.stopTimer(roomCode);
+
     const { targetValue, guessValue } = room.game;
-    const result = this.calculateScore(targetValue, guessValue);
+    const difficulty = room.settings?.difficulty || 'normal';
+    const result = this.calculateScore(targetValue, guessValue, difficulty);
 
     // Ajouter les points à tous les joueurs (sauf le psychique)
     room.players.forEach(player => {
@@ -286,7 +355,7 @@ class GameManager {
 
     console.log(`📊 Résultat dans ${roomCode}:`);
     console.log(`   Cible: ${targetValue}, Réponse: ${guessValue}`);
-    console.log(`   Distance: ${result.distance}, Zone: ${result.zone}, Points: ${result.points}`);
+    console.log(`   Distance: ${result.distance}, Zone: ${result.zone}, Points: ${result.points} (${difficulty})`);
 
     return {
       room,
@@ -312,6 +381,9 @@ class GameManager {
 
     const game = room.game;
 
+    // Arrêter le timer du round précédent
+    timerManager.stopTimer(roomCode);
+
     // Vérifier si la partie est terminée
     if (game.currentRound >= game.totalRounds) {
       room.gameState = 'finished';
@@ -334,6 +406,7 @@ class GameManager {
     game.guessValue = null;
     game.clue = null;
     game.lastResult = null;
+    game.timerExpired = false;
     game.currentRound++;
 
     room.gameState = 'playing';
@@ -341,6 +414,11 @@ class GameManager {
     console.log(`▶️ Tour ${game.currentRound}/${game.totalRounds} dans ${roomCode}`);
     console.log(`   Psychique: ${room.players[game.psychicIndex].name}`);
     console.log(`   Carte: ${game.currentCard.left} ↔ ${game.currentCard.right}`);
+
+    // Démarrer le timer du nouveau round si activé
+    if (room.settings.timerEnabled && room.settings.timerDuration) {
+      this.startRoundTimer(roomCode);
+    }
 
     return room;
   }
@@ -393,6 +471,89 @@ class GameManager {
    */
   getRoomCount() {
     return this.rooms.size;
+  }
+
+  /**
+   * Démarre le timer pour un round
+   * @param {string} roomCode - Code de la room
+   * @param {Function} onTick - Callback optionnel appelé chaque seconde
+   * @param {Function} onExpireCallback - Callback optionnel appelé en plus de handleTimerExpire
+   */
+  startRoundTimer(roomCode, onTick = null, onExpireCallback = null) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room || !room.game || !room.settings.timerEnabled || !room.settings.timerDuration) {
+      return;
+    }
+
+    const duration = room.settings.timerDuration;
+    room.game.roundStartTime = new Date();
+    room.game.timerExpired = false;
+
+    // Callback d'expiration : forcer la soumission ou passer au round suivant
+    const onExpire = () => {
+      this.handleTimerExpire(roomCode);
+
+      // Appeler le callback custom si fourni (pour émettre socket event)
+      if (onExpireCallback) {
+        onExpireCallback(roomCode);
+      }
+    };
+
+    timerManager.startTimer(roomCode, duration, onExpire, onTick);
+  }
+
+  /**
+   * Gère l'expiration du timer d'un round
+   * @param {string} roomCode - Code de la room
+   */
+  handleTimerExpire(roomCode) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room || !room.game) {
+      return;
+    }
+
+    console.log(`⏰ Timer expiré pour ${roomCode} - Round ${room.game.currentRound}`);
+
+    room.game.timerExpired = true;
+
+    // Si on est en attente de guess, forcer une valeur par défaut (milieu = 10)
+    if (room.gameState === 'playing' && room.game.clue && !room.game.guessValue) {
+      console.log(`   → Soumission automatique de la valeur par défaut (10)`);
+      room.game.guessValue = 10;
+      room.gameState = 'revealing';
+    }
+  }
+
+  /**
+   * Met à jour les paramètres d'une room
+   * @param {string} roomCode - Code de la room
+   * @param {Object} newSettings - Nouveaux paramètres
+   * @returns {Object|null} Room mise à jour
+   */
+  updateSettings(roomCode, newSettings) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room) {
+      return null;
+    }
+
+    // Fusionner les nouveaux settings
+    room.settings = { ...room.settings, ...newSettings };
+
+    console.log(`⚙️ Settings mis à jour pour ${roomCode}:`, newSettings);
+
+    return room;
+  }
+
+  /**
+   * Récupère le temps restant pour le round actuel
+   * @param {string} roomCode - Code de la room
+   * @returns {number} Temps restant en secondes
+   */
+  getRemainingTime(roomCode) {
+    return timerManager.getRemainingTime(roomCode);
   }
 }
 

@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
 import Dial from './Dial';
+import Timer from './ui/Timer';
+import ProgressBar from './ui/ProgressBar';
+import ConfettiEffect from './ui/ConfettiEffect';
+import ScorePulse from './ui/ScorePulse';
+import useTimer from '../hooks/useTimer';
+import useHaptic from '../hooks/useHaptic';
 
 /**
  * Composant principal du jeu en cours
@@ -11,11 +17,20 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   const [targetValue, setTargetValue] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  const [triggerConfetti, setTriggerConfetti] = useState(0); // Counter pour trigger confetti
 
   const game = currentRoom?.game;
   const currentPlayer = currentRoom?.players.find(p => p.name === playerName);
   const isPsychic = currentPlayer?.id === game?.psychicId;
   const psychicPlayer = currentRoom?.players.find(p => p.id === game?.psychicId);
+
+  // Hook pour gérer le timer
+  const timerEnabled = currentRoom?.settings?.timerEnabled && currentRoom?.gameState === 'playing';
+  const timerDuration = currentRoom?.settings?.timerDuration;
+  const { remainingTime, isExpired } = useTimer(socket, timerDuration, timerEnabled);
+
+  // Hook pour feedback haptique
+  const { feedback: haptic } = useHaptic();
 
   // Écouter les mises à jour du jeu
   useEffect(() => {
@@ -53,6 +68,16 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       setShowResult(true);
       if (!isPsychic) {
         setTargetValue(result.targetValue);
+      }
+
+      // Déclencher confetti sur zone verte
+      if (result.zone === 'green') {
+        setTriggerConfetti(prev => prev + 1);
+        haptic.success();
+      } else if (result.zone === 'yellow' || result.zone === 'orange') {
+        haptic.medium();
+      } else {
+        haptic.error();
       }
     });
 
@@ -195,7 +220,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                       <span className="text-sm text-purple-600">(Vous)</span>
                     )}
                   </div>
-                  <span className="text-2xl font-bold">{player.score} pts</span>
+                  <ScorePulse value={player.score} className="text-2xl font-bold" /> pts
                 </div>
               ))}
             </div>
@@ -223,10 +248,13 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-4">
+      {/* Confetti effect sur zone verte */}
+      <ConfettiEffect trigger={triggerConfetti} />
+
       <div className="max-w-6xl mx-auto">
         {/* En-tête */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-800">
                 🎮 WaveLength
@@ -236,12 +264,24 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
               </p>
             </div>
 
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Tour</p>
-              <p className="text-2xl font-bold text-indigo-600">
-                {game?.currentRound} / {game?.totalRounds}
-              </p>
+            {/* Barre de progression */}
+            <div className="flex-1 min-w-[200px] max-w-md">
+              <ProgressBar
+                currentRound={game?.currentRound || 1}
+                totalRounds={game?.totalRounds || 1}
+              />
             </div>
+
+            {/* Timer si activé */}
+            {timerEnabled && timerDuration && (
+              <div>
+                <Timer
+                  duration={timerDuration}
+                  remainingTime={remainingTime}
+                  isActive={timerEnabled}
+                />
+              </div>
+            )}
 
             <button
               onClick={onLeaveRoom}
@@ -278,7 +318,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                         <p className="text-xs text-purple-600">🔮 Psychique</p>
                       )}
                     </div>
-                    <span className="font-bold text-lg">{player.score}</span>
+                    <ScorePulse value={player.score} className="font-bold text-lg" />
                   </div>
                 ))}
               </div>

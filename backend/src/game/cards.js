@@ -60,7 +60,23 @@ export function drawRandomCard() {
 
 /**
  * Crée un deck mélangé de toutes les cartes
+ * @param {Array} customCards - Cartes personnalisées optionnelles
+ * @returns {Array} Deck mélangé
  */
-export function createShuffledDeck() {
-  return shuffleArray(CARDS);
+export function createShuffledDeck(customCards = []) {
+  // Fusionner cartes officielles + custom
+  const allCards = [...CARDS];
+
+  if (customCards && customCards.length > 0) {
+    // Ajouter les cartes custom avec IDs uniques
+    const customWithIds = customCards.map((card, index) => ({
+      id: `custom_${card.id || index}`,
+      left: card.left,
+      right: card.right,
+      isCustom: true
+    }));
+    allCards.push(...customWithIds);
+  }
+
+  return shuffleArray(allCards);
 }
