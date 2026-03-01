@@ -3,6 +3,7 @@
  */
 
 import gameManager from '../game/gameManager.js';
+import customCardsManager from '../game/customCardsManager.js';
 
 /**
  * Configure les gestionnaires d'événements Socket.IO
@@ -88,10 +89,10 @@ export function setupSocketHandlers(io) {
     // ========== GESTION DU JEU ==========
 
     // Démarrer la partie
-    socket.on('start-game', ({ roomCode }) => {
+    socket.on('start-game', ({ roomCode, settings }) => {
       console.log(`🎮 Demande de démarrage de partie dans ${roomCode}`);
 
-      const room = gameManager.startGame(roomCode);
+      const room = gameManager.startGame(roomCode, settings);
 
       if (!room) {
         socket.emit('start-game-error', {
@@ -112,6 +113,25 @@ export function setupSocketHandlers(io) {
       io.to(room.game.psychicId).emit('target-revealed', {
         targetValue: room.game.targetValue
       });
+
+      // Si le timer est activé, démarrer avec callbacks tick et expire
+      if (room.settings.timerEnabled && room.settings.timerDuration) {
+        const onTick = (remainingTime) => {
+          io.to(roomCode).emit('timer-tick', {
+            remainingTime,
+            roomCode
+          });
+        };
+
+        const onExpire = (roomCode) => {
+          io.to(roomCode).emit('timer-expired', {
+            roomCode,
+            room: gameManager.getRoom(roomCode)
+          });
+        };
+
+        gameManager.startRoundTimer(roomCode, onTick, onExpire);
+      }
     });
 
     // Le psychique soumet un indice
@@ -194,6 +214,25 @@ export function setupSocketHandlers(io) {
         io.to(room.game.psychicId).emit('target-revealed', {
           targetValue: room.game.targetValue
         });
+
+        // Si le timer est activé, démarrer avec callbacks tick et expire
+        if (room.settings.timerEnabled && room.settings.timerDuration) {
+          const onTick = (remainingTime) => {
+            io.to(roomCode).emit('timer-tick', {
+              remainingTime,
+              roomCode
+            });
+          };
+
+          const onExpire = (roomCode) => {
+            io.to(roomCode).emit('timer-expired', {
+              roomCode,
+              room: gameManager.getRoom(roomCode)
+            });
+          };
+
+          gameManager.startRoundTimer(roomCode, onTick, onExpire);
+        }
       }
     });
 
@@ -213,6 +252,28 @@ export function setupSocketHandlers(io) {
 
       io.to(roomCode).emit('game-reset', {
         success: true,
+        room
+      });
+    });
+
+    // Mettre à jour les paramètres d'une room (avant de démarrer)
+    socket.on('update-settings', ({ roomCode, settings }) => {
+      console.log(`⚙️ Mise à jour des paramètres pour ${roomCode}`);
+
+      const room = gameManager.updateSettings(roomCode, settings);
+
+      if (!room) {
+        socket.emit('update-settings-error', {
+          success: false,
+          message: 'Room introuvable'
+        });
+        return;
+      }
+
+      // Informer tous les joueurs des nouveaux paramètres
+      io.to(roomCode).emit('settings-updated', {
+        success: true,
+        settings: room.settings,
         room
       });
     });
@@ -238,6 +299,38 @@ export function setupSocketHandlers(io) {
           }
         }
       });
+    });
+
+    // ========== CUSTOM CARDS ==========
+
+    // Ajouter une carte personnalisée
+    socket.on('add-custom-card', ({ roomCode, card }) => {
+      const newCard = customCardsManager.addCard(roomCode, card);
+      io.to(roomCode).emit('custom-card-added', { card: newCard });
+    });
+
+    // Supprimer une carte personnalisée
+    socket.on('remove-custom-card', ({ roomCode, cardId }) => {
+      const success = customCardsManager.removeCard(roomCode, cardId);
+      if (success) {
+        io.to(roomCode).emit('custom-card-removed', { cardId });
+      }
+    });
+
+    // Importer des cartes
+    socket.on('import-custom-cards', ({ roomCode, cards }) => {
+      try {
+        const imported = customCardsManager.importCards(roomCode, cards);
+        io.to(roomCode).emit('custom-cards-imported', { cards: imported });
+      } catch (error) {
+        socket.emit('import-error', { message: error.message });
+      }
+    });
+
+    // Exporter des cartes
+    socket.on('export-custom-cards', ({ roomCode }) => {
+      const json = customCardsManager.exportCards(roomCode);
+      socket.emit('custom-cards-exported', { json });
     });
 
     // Debug: obtenir l'état d'une room
