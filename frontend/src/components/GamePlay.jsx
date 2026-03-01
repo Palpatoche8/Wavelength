@@ -121,11 +121,19 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
     });
   };
 
-  // Rejouer
+  // Rejouer - Redémarrer directement une nouvelle partie
   const handleResetGame = () => {
+    // Reset puis redémarrer
     socket.emit('reset-game', {
       roomCode: currentRoom.code
     });
+
+    // Attendre un peu puis démarrer automatiquement
+    setTimeout(() => {
+      socket.emit('start-game', {
+        roomCode: currentRoom.code
+      });
+    }, 500);
   };
 
   // Déterminer la couleur de la zone selon le score

@@ -108,12 +108,10 @@ export function setupSocketHandlers(io) {
       });
 
       // Envoyer la cible secrète uniquement au psychique
-      const psychicSocket = io.sockets.sockets.get(room.game.psychicId);
-      if (psychicSocket) {
-        psychicSocket.emit('target-revealed', {
-          targetValue: room.game.targetValue
-        });
-      }
+      // Utiliser io.to() avec l'ID du socket pour cibler directement le psychique
+      io.to(room.game.psychicId).emit('target-revealed', {
+        targetValue: room.game.targetValue
+      });
     });
 
     // Le psychique soumet un indice
@@ -193,12 +191,9 @@ export function setupSocketHandlers(io) {
         });
 
         // Envoyer la nouvelle cible au nouveau psychique
-        const psychicSocket = io.sockets.sockets.get(room.game.psychicId);
-        if (psychicSocket) {
-          psychicSocket.emit('target-revealed', {
-            targetValue: room.game.targetValue
-          });
-        }
+        io.to(room.game.psychicId).emit('target-revealed', {
+          targetValue: room.game.targetValue
+        });
       }
     });
 
