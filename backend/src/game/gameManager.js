@@ -151,6 +151,7 @@ class GameManager {
 
     // Initialiser le jeu
     const deck = createShuffledDeck();
+    const randomPsychicIndex = Math.floor(Math.random() * room.players.length); // ← Ajoute cette ligne
 
     room.gameState = 'playing';
     room.game = {
@@ -158,12 +159,12 @@ class GameManager {
       currentCardIndex: 0,
       currentCard: deck[0],
       targetValue: Math.floor(Math.random() * 20) + 1, // 1 à 20
-      psychicIndex: 0, // Index du joueur psychique
-      psychicId: room.players[0].id,
-      currentRound: 1,
+      psychicIndex: randomPsychicIndex, // ← Utilise la variable
+      psychicId: room.players[randomPsychicIndex].id, // ← Utilise la variable
+      currentRound: 0,
       totalRounds: room.players.length * 2, // 2 tours par joueur
-      guessValue: null, // Réponse des joueurs (1-20)
-      clue: null, // Indice donné par le psychique
+      guessValue: null,
+      clue: null,
       startedAt: new Date()
     };
 
