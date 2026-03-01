@@ -171,17 +171,18 @@ function Dial({
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const x1 = 192 + Math.cos(startRad) * 120;
-                  const y1 = 192 - Math.sin(startRad) * 120;
-                  const x2 = 192 + Math.cos(endRad) * 120;
-                  const y2 = 192 - Math.sin(endRad) * 120;
+                  const radius = 168; // Rayon total du cadran
+                  const x1 = 192 + Math.cos(startRad) * radius;
+                  const y1 = 192 - Math.sin(startRad) * radius;
+                  const x2 = 192 + Math.cos(endRad) * radius;
+                  const y2 = 192 - Math.sin(endRad) * radius;
 
                   const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
 
                   return (
                     <path
-                      d={`M 192 192 L ${x1} ${y1} A 120 120 0 ${largeArc} 0 ${x2} ${y2} Z`}
-                      fill="rgba(249, 115, 22, 0.25)"
+                      d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 0 ${x2} ${y2} Z`}
+                      fill="rgba(249, 115, 22, 0.3)"
                       stroke="none"
                     />
                   );
@@ -198,17 +199,18 @@ function Dial({
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const x1 = 192 + Math.cos(startRad) * 120;
-                  const y1 = 192 - Math.sin(startRad) * 120;
-                  const x2 = 192 + Math.cos(endRad) * 120;
-                  const y2 = 192 - Math.sin(endRad) * 120;
+                  const radius = 168; // Rayon total du cadran
+                  const x1 = 192 + Math.cos(startRad) * radius;
+                  const y1 = 192 - Math.sin(startRad) * radius;
+                  const x2 = 192 + Math.cos(endRad) * radius;
+                  const y2 = 192 - Math.sin(endRad) * radius;
 
                   const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
 
                   return (
                     <path
-                      d={`M 192 192 L ${x1} ${y1} A 120 120 0 ${largeArc} 0 ${x2} ${y2} Z`}
-                      fill="rgba(234, 179, 8, 0.35)"
+                      d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 0 ${x2} ${y2} Z`}
+                      fill="rgba(234, 179, 8, 0.4)"
                       stroke="none"
                     />
                   );
@@ -217,22 +219,23 @@ function Dial({
                 {/* Zone verte (valeur exacte) - 4 points */}
                 {(() => {
                   const targetAngle = valueToAngle(targetValue);
-                  const spreadAngle = 2; // Petit angle pour montrer la zone exacte
+                  const spreadAngle = 4; // Petit angle pour montrer la zone exacte
                   const startAngle = Math.max(0, targetAngle - spreadAngle);
                   const endAngle = Math.min(180, targetAngle + spreadAngle);
 
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const x1 = 192 + Math.cos(startRad) * 120;
-                  const y1 = 192 - Math.sin(startRad) * 120;
-                  const x2 = 192 + Math.cos(endRad) * 120;
-                  const y2 = 192 - Math.sin(endRad) * 120;
+                  const radius = 168; // Rayon total du cadran
+                  const x1 = 192 + Math.cos(startRad) * radius;
+                  const y1 = 192 - Math.sin(startRad) * radius;
+                  const x2 = 192 + Math.cos(endRad) * radius;
+                  const y2 = 192 - Math.sin(endRad) * radius;
 
                   return (
                     <path
-                      d={`M 192 192 L ${x1} ${y1} A 120 120 0 0 0 ${x2} ${y2} Z`}
-                      fill="rgba(34, 197, 94, 0.45)"
+                      d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 0 0 ${x2} ${y2} Z`}
+                      fill="rgba(34, 197, 94, 0.5)"
                       stroke="none"
                     />
                   );
@@ -352,7 +355,7 @@ function Dial({
           } rounded-full flex items-center justify-center shadow-xl ${
             !disabled && 'hover:scale-110 transition-transform cursor-grab active:cursor-grabbing'
           }`}>
-            <div className={`text-2xl font-bold ${disabled ? 'text-white' : 'text-gray-700'}`}>
+            <div className={`text-2xl font-bold font-mono text-center ${disabled ? 'text-white' : 'text-gray-700'}`}>
               {value}
             </div>
           </div>
