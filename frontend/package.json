@@ -17,6 +17,8 @@
     "socket.io-client": "^4.6.1",
     "vite-plugin-pwa": "^1.2.0",
     "zustand": "^5.0.11"
+    "socket.io-client": "^4.6.1",
+    "wavelength-game": "file:.."
   },
   "devDependencies": {
     "@types/react": "^18.2.55",

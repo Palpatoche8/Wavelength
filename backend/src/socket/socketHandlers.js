@@ -132,6 +132,19 @@ export function setupSocketHandlers(io) {
 
         gameManager.startRoundTimer(roomCode, onTick, onExpire);
       }
+      setTimeout(() => {
+      const updatedRoom = gameManager.nextRound(roomCode);
+      if (updatedRoom && updatedRoom.gameState === 'playing') {
+        io.to(roomCode).emit('round-started', {
+          success: true,
+          room: updatedRoom
+        });
+    
+      io.to(updatedRoom.game.psychicId).emit('target-revealed', {
+        targetValue: updatedRoom.game.targetValue
+       });
+      }
+      }, 100); // Petit délai pour la synchronisation
     });
 
     // Le psychique soumet un indice

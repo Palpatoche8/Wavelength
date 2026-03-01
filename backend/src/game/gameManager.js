@@ -181,6 +181,9 @@ class GameManager {
 
     // Calculer totalRounds : utiliser settings.totalRounds si défini, sinon 2 * nb joueurs
     const totalRounds = room.settings.totalRounds || (room.players.length * 2);
+    // Initialiser le jeu
+    const deck = createShuffledDeck();
+    const randomPsychicIndex = Math.floor(Math.random() * room.players.length); // ← Ajoute cette ligne
 
     room.gameState = 'playing';
     room.game = {
