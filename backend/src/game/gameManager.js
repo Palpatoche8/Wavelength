@@ -185,12 +185,27 @@ class GameManager {
     // Initialiser le jeu
 
 
+    // Générer une valeur cible avec distribution gaussienne pour éviter trop d'extrêmes
+    const generateTargetValue = () => {
+      // Distribution gaussienne centrée sur 10.5 avec écart-type de 5
+      // Utilise la méthode Box-Muller pour obtenir une distribution normale
+      const u1 = Math.random();
+      const u2 = Math.random();
+      const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+
+      // Convertir en valeur entre 1 et 20 (moyenne = 10.5, écart-type = 5)
+      let value = Math.round(10.5 + z0 * 5);
+
+      // Clamper entre 1 et 20
+      return Math.max(1, Math.min(20, value));
+    };
+
     room.gameState = 'playing';
     room.game = {
       deck: deck,
       currentCardIndex: 0,
       currentCard: deck[0],
-      targetValue: Math.floor(Math.random() * 20) + 1, // 1 à 20
+      targetValue: generateTargetValue(),
       psychicIndex: randomPsychicIndex,
       psychicId: room.players[randomPsychicIndex].id,
       currentRound: 0,
@@ -399,8 +414,15 @@ class GameManager {
     game.currentCardIndex = (game.currentCardIndex + 1) % game.deck.length;
     game.currentCard = game.deck[game.currentCardIndex];
 
-    // Nouvelle cible aléatoire (1-20)
-    game.targetValue = Math.floor(Math.random() * 20) + 1;
+    // Nouvelle cible aléatoire (1-20) avec distribution gaussienne
+    const generateTargetValue = () => {
+      const u1 = Math.random();
+      const u2 = Math.random();
+      const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      let value = Math.round(10.5 + z0 * 5);
+      return Math.max(1, Math.min(20, value));
+    };
+    game.targetValue = generateTargetValue();
 
     // Réinitialiser l'état du tour
     game.guessValue = null;

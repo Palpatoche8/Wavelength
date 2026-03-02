@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import HelpModal from './HelpModal';
 
 /**
  * Composant de la salle de jeu
@@ -7,6 +8,7 @@ import { useState, useEffect } from 'react';
 function GameRoom({ room, socket, playerName, onLeaveRoom }) {
   const [currentRoom, setCurrentRoom] = useState(room);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Écouter les mises à jour de la room
   useEffect(() => {
@@ -52,6 +54,17 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+
+      {/* Bouton Help flottant */}
+      <button
+        onClick={() => setShowHelp(true)}
+        className="fixed top-4 right-4 w-12 h-12 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg transition-all hover:scale-110 z-50"
+        aria-label="Aide"
+      >
+        <span className="text-xl font-bold">?</span>
+      </button>
+
       <div className="max-w-2xl w-full">
         {/* En-tête de la room */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
