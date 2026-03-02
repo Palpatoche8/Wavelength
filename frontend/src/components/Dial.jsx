@@ -171,7 +171,7 @@ function Dial({
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const radius = 168; // Même rayon que l'arc principal pour couvrir tout le demi-cercle
+                  const radius = 200; // Rayon étendu pour couvrir jusqu'au bord extérieur visible du cadran
                   const x1 = 192 + Math.cos(startRad) * radius;
                   const y1 = 192 - Math.sin(startRad) * radius;
                   const x2 = 192 + Math.cos(endRad) * radius;
@@ -199,7 +199,7 @@ function Dial({
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const radius = 168; // Même rayon pour cohérence
+                  const radius = 200; // Même rayon pour cohérence avec zone orange
                   const x1 = 192 + Math.cos(startRad) * radius;
                   const y1 = 192 - Math.sin(startRad) * radius;
                   const x2 = 192 + Math.cos(endRad) * radius;
@@ -226,7 +226,7 @@ function Dial({
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const radius = 168; // Rayon total du cadran
+                  const radius = 200; // Rayon étendu pour cohérence
                   const x1 = 192 + Math.cos(startRad) * radius;
                   const y1 = 192 - Math.sin(startRad) * radius;
                   const x2 = 192 + Math.cos(endRad) * radius;
