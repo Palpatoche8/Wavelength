@@ -172,10 +172,10 @@ function Dial({
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
                   const radius = 200; // Rayon étendu pour couvrir jusqu'au bord extérieur visible du cadran
-                  const x1 = 192 + Math.cos(startRad) * radius;
+                  const x1 = 192 + Math.cos(startRad) * radius; 
                   const y1 = 192 - Math.sin(startRad) * radius;
                   const x2 = 192 + Math.cos(endRad) * radius;
-                  const y2 = 192 - Math.sin(endRad) * radius;
+                  const y2 = 194 - Math.sin(endRad) * radius;
 
                   const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
 
@@ -226,7 +226,7 @@ function Dial({
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const radius = 200; // Rayon étendu pour cohérence
+                  const radius = 192; // Rayon étendu pour cohérence
                   const x1 = 192 + Math.cos(startRad) * radius;
                   const y1 = 192 - Math.sin(startRad) * radius;
                   const x2 = 192 + Math.cos(endRad) * radius;

@@ -14,7 +14,7 @@ function Card({ card }) {
       {/* Spectre visuel */}
       <div className="relative">
         {/* Barre de dégradé */}
-        <div className="h-16 rounded-lg bg-gradient-to-r from-blue-500 via-purple-300 to-red-500 mb-4 shadow-inner">
+        <div className="h-16 rounded-lg bg-gradient-to-r from-blue-500 via-purple-300 to-orange-500 mb-4 shadow-inner">
         </div>
 
         {/* Labels des concepts */}
@@ -28,8 +28,8 @@ function Card({ card }) {
           </div>
 
           <div className="flex-1 pl-4">
-            <div className="bg-red-100 rounded-lg p-3 text-center border-2 border-red-300">
-              <p className="text-sm font-bold text-red-800">
+            <div className="bg-orange-100 rounded-lg p-3 text-center border-2 border-orange-300">
+              <p className="text-sm font-bold text-orange-800">
                 {card.right}
               </p>
             </div>
