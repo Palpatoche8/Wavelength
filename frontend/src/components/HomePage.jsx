@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import HelpModal from './HelpModal';
 
 /**
  * Composant de la page d'accueil
@@ -8,6 +9,7 @@ function HomePage({ onCreateRoom, onJoinRoom, isConnected }) {
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [activeTab, setActiveTab] = useState('create'); // 'create' ou 'join'
+  const [showHelp, setShowHelp] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -30,15 +32,26 @@ function HomePage({ onCreateRoom, onJoinRoom, isConnected }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+
       <div className="max-w-md w-full">
-        {/* En-tête */}
-        <div className="text-center mb-8">
+        {/* En-tête avec bouton Help */}
+        <div className="text-center mb-8 relative">
           <h1 className="text-5xl font-bold text-gray-800 mb-2">
              WaveLength
           </h1>
           <p className="text-gray-600">
             Jeu multijoueur de devinettes par équipes
           </p>
+
+          {/* Bouton Help en haut à droite */}
+          <button
+            onClick={() => setShowHelp(true)}
+            className="absolute top-0 right-0 w-10 h-10 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg transition-all hover:scale-110"
+            aria-label="Aide"
+          >
+            ?
+          </button>
         </div>
 
         {/* Carte principale */}

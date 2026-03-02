@@ -335,16 +335,16 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 </h3>
                 <div className="flex justify-between items-center gap-4">
                   <div className="flex-1 text-center">
-                    <div className="bg-orange-100 rounded-lg p-4 border-2 border-orange-300">
-                      <p className="text-sm font-bold text-orange-800">
+                    <div className="bg-blue-100 rounded-lg p-4 border-2 border-blue-300">
+                      <p className="text-sm font-bold text-blue-800">
                         {game.currentCard.left}
                       </p>
                     </div>
                   </div>
                   <div className="text-2xl text-gray-400">↔</div>
                   <div className="flex-1 text-center">
-                    <div className="bg-blue-100 rounded-lg p-4 border-2 border-blue-300">
-                      <p className="text-sm font-bold text-blue-800">
+                    <div className="bg-red-100 rounded-lg p-4 border-2 border-red-300">
+                      <p className="text-sm font-bold text-red-800">
                         {game.currentCard.right}
                       </p>
                     </div>
