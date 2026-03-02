@@ -177,10 +177,10 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
   // Obtenir le message selon la distance
   const getDistanceMessage = (distance) => {
-    if (distance === 0) return '🎉 PARFAIT ! Valeur exacte !';
-    if (distance === 1) return '👍 Très proche !';
-    if (distance === 2) return '👌 Proche';
-    return '❌ Trop loin...';
+    if (distance === 0) return ' PARFAIT ! Valeur exacte !';
+    if (distance === 1) return ' Très proche !';
+    if (distance === 2) return ' Proche';
+    return ' Trop loin...';
   };
 
   // Affichage selon l'état du jeu
@@ -193,7 +193,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
         <div className="max-w-2xl w-full">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <h2 className="text-4xl font-bold text-center mb-6 text-purple-800">
-              🏆 Partie terminée !
+               Partie terminée !
             </h2>
 
             {/* Podium */}
@@ -231,13 +231,13 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 onClick={handleResetGame}
                 className="flex-1 py-3 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition"
               >
-                🔄 Rejouer
+                 Rejouer
               </button>
               <button
                 onClick={onLeaveRoom}
                 className="flex-1 py-3 px-6 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition"
               >
-                🚪 Quitter
+                 Quitter
               </button>
             </div>
           </div>
@@ -257,7 +257,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-800">
-                🎮 WaveLength
+                 WaveLength
               </h2>
               <p className="text-sm text-gray-600">
                 Room: <span className="font-mono font-bold">{currentRoom.code}</span>
@@ -287,7 +287,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
               onClick={onLeaveRoom}
               className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg transition"
             >
-              🚪 Quitter
+               Quitter
             </button>
           </div>
         </div>
@@ -315,7 +315,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                         {player.name === playerName && ' (Vous)'}
                       </p>
                       {player.id === game?.psychicId && (
-                        <p className="text-xs text-purple-600">🔮 Psychique</p>
+                        <p className="text-xs text-purple-600"> Maitre</p>
                       )}
                     </div>
                     <ScorePulse value={player.score} className="font-bold text-lg" />
@@ -357,10 +357,10 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
             {isPsychic && !game?.clue && (
               <div className="bg-purple-100 border-2 border-purple-400 rounded-xl p-6 mb-6">
                 <h3 className="text-xl font-bold text-purple-800 mb-4">
-                  🔮 Vous êtes le Psychique !
+                   Vous êtes le Maitre !
                 </h3>
                 <p className="text-gray-700 mb-2">
-                  La cible secrète est : <strong className="text-3xl text-purple-900">
+                  La valeur secrète est : <strong className="text-3xl text-purple-900">
                     {targetValue !== null ? targetValue : '...'}
                   </strong>
                 </p>
@@ -393,7 +393,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
             {game?.clue && (
               <div className="bg-blue-100 border-2 border-blue-400 rounded-xl p-6 mb-6">
                 <h3 className="text-lg font-semibold text-blue-800 mb-2">
-                  💡 Indice de {psychicPlayer?.name}
+                   Indice de {psychicPlayer?.name}
                 </h3>
                 <p className="text-2xl font-bold text-blue-900">"{game.clue}"</p>
               </div>
@@ -426,7 +426,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 {isPsychic && (
                   <div className="mt-6 text-center">
                     <p className="text-gray-600 text-sm">
-                      Vous êtes le psychique. Attendez que votre équipe positionne le curseur.
+                      Vous êtes le Maitre. Attendez que votre équipe positionne le curseur.
                     </p>
                   </div>
                 )}
@@ -434,7 +434,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 {!game?.clue && !isPsychic && (
                   <div className="mt-6 text-center">
                     <p className="text-gray-600 text-sm">
-                      Attendez l'indice du psychique...
+                      Attendez l'indice du Maitre...
                     </p>
                   </div>
                 )}
@@ -445,7 +445,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
             {showResult && lastResult && (
               <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
                 <h3 className="text-2xl font-bold text-center mb-6">
-                  📊 Résultat du tour
+                   Résultat du tour
                 </h3>
 
                 {/* Cadran avec cible révélée */}
@@ -467,7 +467,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
                   {/* Cible */}
                   <div className="bg-white rounded-xl shadow-md border-2 border-red-300 p-6 text-center">
-                    <p className="text-sm text-red-600 mb-2 font-medium">🎯 Cible</p>
+                    <p className="text-sm text-red-600 mb-2 font-medium"> Cible</p>
                     <p className="text-6xl font-bold text-red-600">{lastResult.targetValue}</p>
                   </div>
                 </div>
@@ -497,7 +497,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                       onClick={handleNextRound}
                       className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold text-lg hover:from-indigo-700 hover:to-purple-700 transition shadow-lg"
                     >
-                      ▶️ Tour suivant
+                      ▶ Tour suivant
                     </button>
                   </div>
                 )}

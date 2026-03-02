@@ -171,7 +171,7 @@ function Dial({
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const radius = 168; // Rayon total du cadran
+                  const radius = 192; // Rayon total du cadran
                   const x1 = 192 + Math.cos(startRad) * radius;
                   const y1 = 192 - Math.sin(startRad) * radius;
                   const x2 = 192 + Math.cos(endRad) * radius;
@@ -199,7 +199,7 @@ function Dial({
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const radius = 168; // Rayon total du cadran
+                  const radius = 192; // Rayon total du cadran
                   const x1 = 192 + Math.cos(startRad) * radius;
                   const y1 = 192 - Math.sin(startRad) * radius;
                   const x2 = 192 + Math.cos(endRad) * radius;

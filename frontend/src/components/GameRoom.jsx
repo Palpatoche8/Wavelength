@@ -65,7 +65,7 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                 onClick={onLeaveRoom}
                 className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
               >
-                🚪 Quitter
+                 Quitter
               </button>
             </div>
 
@@ -81,7 +81,7 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                     onClick={handleCopyCode}
                     className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm"
                   >
-                    {copiedCode ? '✓ Copié !' : '📋 Copier'}
+                    {copiedCode ? '✓ Copié !' : ' Copier'}
                   </button>
                 </div>
               </div>
@@ -161,7 +161,7 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                       : 'bg-gray-300 cursor-not-allowed'
                   }`}
                 >
-                  🎮 Démarrer la partie
+                   Démarrer la partie
                   {currentRoom.players.length < 2 && (
                     <span className="text-sm font-normal ml-2">
                       (minimum 2 joueurs)
@@ -176,7 +176,7 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
         {/* Informations supplémentaires */}
         <div className="mt-6 bg-white rounded-lg shadow p-4">
           <h4 className="font-semibold text-gray-800 mb-2">
-            🎯 Prochaines étapes
+             Prochaines étapes
           </h4>
           <ul className="text-sm text-gray-600 space-y-1">
             <li>✓ Room créée avec succès</li>

@@ -174,6 +174,7 @@ class GameManager {
     const customCards = room.settings.customCardsEnabled
       ? customCardsManager.getCards(roomCode)
       : [];
+
     const deck = createShuffledDeck(customCards);
 
     // Choisir psychique aléatoire au démarrage
@@ -182,8 +183,7 @@ class GameManager {
     // Calculer totalRounds : utiliser settings.totalRounds si défini, sinon 2 * nb joueurs
     const totalRounds = room.settings.totalRounds || (room.players.length * 2);
     // Initialiser le jeu
-    const deck = createShuffledDeck();
-    const randomPsychicIndex = Math.floor(Math.random() * room.players.length); // ← Ajoute cette ligne
+
 
     room.gameState = 'playing';
     room.game = {
@@ -193,7 +193,7 @@ class GameManager {
       targetValue: Math.floor(Math.random() * 20) + 1, // 1 à 20
       psychicIndex: randomPsychicIndex,
       psychicId: room.players[randomPsychicIndex].id,
-      currentRound: 1,
+      currentRound: 0,
       totalRounds: totalRounds,
       guessValue: null, // Réponse des joueurs (1-20)
       clue: null, // Indice donné par le psychique

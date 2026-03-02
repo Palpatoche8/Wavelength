@@ -34,7 +34,7 @@ function HomePage({ onCreateRoom, onJoinRoom, isConnected }) {
         {/* En-tête */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-gray-800 mb-2">
-            🎮 WaveLength
+             WaveLength
           </h1>
           <p className="text-gray-600">
             Jeu multijoueur de devinettes par équipes
@@ -113,7 +113,7 @@ function HomePage({ onCreateRoom, onJoinRoom, isConnected }) {
                   : 'bg-gray-400 cursor-not-allowed'
               }`}
             >
-              {activeTab === 'create' ? '🎯 Créer la partie' : '🚪 Rejoindre la partie'}
+              {activeTab === 'create' ? ' Créer la partie' : ' Rejoindre la partie'}
             </button>
 
             {!isConnected && (
@@ -127,7 +127,7 @@ function HomePage({ onCreateRoom, onJoinRoom, isConnected }) {
         {/* Instructions */}
         <div className="mt-6 bg-white rounded-lg shadow p-4">
           <h3 className="font-semibold text-gray-800 mb-2">
-            📖 Comment jouer ?
+             Comment jouer ?
           </h3>
           <ul className="text-sm text-gray-600 space-y-1">
             <li>• Créez une partie ou rejoignez-en une avec un code</li>
