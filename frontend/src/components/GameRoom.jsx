@@ -9,6 +9,7 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
   const [currentRoom, setCurrentRoom] = useState(room);
   const [copiedCode, setCopiedCode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Écouter les mises à jour de la room
   useEffect(() => {
@@ -51,6 +52,27 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
       roomCode: currentRoom.code
     });
   };
+
+  // Mettre à jour les paramètres
+  const handleUpdateSettings = (newSettings) => {
+    socket.emit('update-settings', {
+      roomCode: currentRoom.code,
+      settings: newSettings
+    });
+  };
+
+  // Écouter les mises à jour de paramètres
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('settings-updated', ({ room: updatedRoom }) => {
+      setCurrentRoom(updatedRoom);
+    });
+
+    return () => {
+      socket.off('settings-updated');
+    };
+  }, [socket]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -161,6 +183,81 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                 Partagez le code <strong>{currentRoom.code}</strong> avec vos amis pour commencer à jouer !
               </p>
             </div>
+
+            {/* Paramètres de la partie (pour l'hôte uniquement) */}
+            {isHost && (
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="w-full py-3 px-6 rounded-lg font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all flex items-center justify-between"
+                >
+                  <span>⚙️ Paramètres de la partie</span>
+                  <span>{showSettings ? '▲' : '▼'}</span>
+                </button>
+
+                {showSettings && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
+                    {/* Timer */}
+                    <div>
+                      <label className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-gray-700">⏱️ Timer par tour</span>
+                        <input
+                          type="checkbox"
+                          checked={currentRoom.settings.timerEnabled}
+                          onChange={(e) => {
+                            handleUpdateSettings({
+                              ...currentRoom.settings,
+                              timerEnabled: e.target.checked,
+                              timerDuration: e.target.checked && !currentRoom.settings.timerDuration ? 60 : currentRoom.settings.timerDuration
+                            });
+                          }}
+                          className="w-5 h-5 text-indigo-600 rounded"
+                        />
+                      </label>
+                      {currentRoom.settings.timerEnabled && (
+                        <select
+                          value={currentRoom.settings.timerDuration || 60}
+                          onChange={(e) => {
+                            handleUpdateSettings({
+                              ...currentRoom.settings,
+                              timerDuration: parseInt(e.target.value)
+                            });
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value={30}>30 secondes</option>
+                          <option value={60}>60 secondes</option>
+                          <option value={90}>90 secondes</option>
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Nombre de tours */}
+                    <div>
+                      <label className="block font-medium text-gray-700 mb-2">
+                        🎯 Nombre de tours
+                      </label>
+                      <select
+                        value={currentRoom.settings.totalRounds || 'auto'}
+                        onChange={(e) => {
+                          const value = e.target.value === 'auto' ? null : parseInt(e.target.value);
+                          handleUpdateSettings({
+                            ...currentRoom.settings,
+                            totalRounds: value
+                          });
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="auto">Auto (2 × nombre de joueurs)</option>
+                        <option value={5}>5 tours</option>
+                        <option value={10}>10 tours</option>
+                        <option value={15}>15 tours</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Bouton de démarrage (pour l'hôte uniquement) */}
             {isHost && (
