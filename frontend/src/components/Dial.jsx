@@ -172,16 +172,16 @@ function Dial({
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
                   const radius = 200; // Rayon étendu pour couvrir jusqu'au bord extérieur visible du cadran
-                  const x1 = 192 + Math.cos(startRad) * radius; 
+                  const x1 = 192 + Math.cos(startRad) * radius;
                   const y1 = 192 - Math.sin(startRad) * radius;
                   const x2 = 192 + Math.cos(endRad) * radius;
-                  const y2 = 194 - Math.sin(endRad) * radius;
+                  const y2 = 192 - Math.sin(endRad) * radius;
 
                   const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
 
                   return (
                     <path
-                      d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 0 ${x2} ${y2} Z`}
+                      d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`}
                       fill="rgba(249, 115, 22, 0.3)"
                       stroke="none"
                     />
@@ -199,7 +199,7 @@ function Dial({
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const radius = 192; // Rayon total du cadran
+                  const radius = 200; // Même rayon que zone orange pour cohérence
                   const x1 = 192 + Math.cos(startRad) * radius;
                   const y1 = 192 - Math.sin(startRad) * radius;
                   const x2 = 192 + Math.cos(endRad) * radius;
@@ -209,7 +209,7 @@ function Dial({
 
                   return (
                     <path
-                      d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 0 ${x2} ${y2} Z`}
+                      d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`}
                       fill="rgba(234, 179, 8, 0.4)"
                       stroke="none"
                     />
@@ -226,7 +226,7 @@ function Dial({
                   const startRad = (Math.PI - (startAngle * Math.PI) / 180);
                   const endRad = (Math.PI - (endAngle * Math.PI) / 180);
 
-                  const radius = 192; // Rayon étendu pour cohérence
+                  const radius = 200; // Rayon étendu pour cohérence avec autres zones
                   const x1 = 192 + Math.cos(startRad) * radius;
                   const y1 = 192 - Math.sin(startRad) * radius;
                   const x2 = 192 + Math.cos(endRad) * radius;
@@ -234,7 +234,7 @@ function Dial({
 
                   return (
                     <path
-                      d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 0 0 ${x2} ${y2} Z`}
+                      d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`}
                       fill="rgba(34, 197, 94, 0.5)"
                       stroke="none"
                     />
