@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 
 /**
@@ -6,8 +6,14 @@ import confetti from 'canvas-confetti';
  * Utilise canvas-confetti pour l'effet visuel
  */
 function ConfettiEffect({ trigger, colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'] }) {
+  const lastTrigger = useRef(0);
+
   useEffect(() => {
-    if (!trigger) return;
+    // Ne rien faire si trigger est 0 ou si c'est le même trigger qu'avant
+    if (!trigger || trigger === lastTrigger.current) return;
+    
+    // Mettre à jour la référence pour éviter les déclenchements multiples
+    lastTrigger.current = trigger;
 
     // Configuration des confettis
     const count = 200;
@@ -24,7 +30,7 @@ function ConfettiEffect({ trigger, colors = ['#10b981', '#3b82f6', '#f59e0b', '#
       });
     }
 
-    // Lancer plusieurs vagues de confettis
+    // Lancer plusieurs vagues de confettis (UNE SEULE FOIS)
     fire(0.25, {
       spread: 26,
       startVelocity: 55
