@@ -25,18 +25,18 @@ function HelpModal({ isOpen, onClose }) {
 
         <div className="space-y-6 text-gray-700">
           <section>
-            <h3 className="text-xl font-semibold mb-2">🎯 Objectif</h3>
+            <h3 className="text-xl font-semibold mb-2"> Objectif</h3>
             <p>
-              Devinez où le psychique a placé la valeur cible sur un spectre entre deux concepts opposés.
+              Devinez où la valeur secrète du maître sur un spectre entre deux concepts opposés.
               Plus vous êtes proche, plus vous gagnez de points !
             </p>
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold mb-2">🎮 Déroulement</h3>
+            <h3 className="text-xl font-semibold mb-2"> Déroulement</h3>
             <ol className="list-decimal list-inside space-y-2">
-              <li>Un joueur est désigné <strong>psychique</strong> à chaque tour</li>
-              <li>Le psychique voit une <strong>cible secrète</strong> (1-20) et une carte spectrum</li>
+              <li>Un joueur est désigné <strong>maître</strong> à chaque tour</li>
+              <li>Le maître voit une <strong>valeure secrète</strong> (1-20) et deux concepts opposés</li>
               <li>Il donne un <strong>indice</strong> aux autres joueurs</li>
               <li>Les joueurs placent le curseur où ils pensent que se trouve la cible</li>
               <li>La cible est révélée et les points sont attribués</li>
@@ -44,7 +44,7 @@ function HelpModal({ isOpen, onClose }) {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold mb-2">📊 Zones de score</h3>
+            <h3 className="text-xl font-semibold mb-2"> Zones de score</h3>
             <ul className="space-y-2">
               <li className="flex items-center gap-2">
                 <span className="w-6 h-6 bg-green-500 rounded"></span>
@@ -68,14 +68,13 @@ function HelpModal({ isOpen, onClose }) {
           <section>
             <h3 className="text-xl font-semibold mb-2">⚙️ Paramètres</h3>
             <ul className="space-y-1">
-              <li>⏱️ <strong>Timer</strong> : Limite de temps par tour (30s, 60s, 90s ou illimité)</li>
-              <li>🔢 <strong>Nombre de tours</strong> : 5, 10, 15 ou libre (2 × nb joueurs)</li>
-              <li>🎯 <strong>Difficulté</strong> : Ajuste les seuils des zones (facile/normal/difficile)</li>
+              <li> <strong>Timer</strong> : Limite de temps par tour (30s, 60s, 90s ou illimité)</li>
+              <li> <strong>Nombre de tours</strong> : 5, 10, 15 ou libre (2 × nb joueurs)</li>
             </ul>
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold mb-2">⌨️ Raccourcis clavier</h3>
+            <h3 className="text-xl font-semibold mb-2"> Raccourcis clavier</h3>
             <ul className="space-y-1">
               <li><kbd className="px-2 py-1 bg-gray-200 rounded">←</kbd> / <kbd className="px-2 py-1 bg-gray-200 rounded">→</kbd> : Déplacer le curseur</li>
               <li><kbd className="px-2 py-1 bg-gray-200 rounded">Home</kbd> / <kbd className="px-2 py-1 bg-gray-200 rounded">End</kbd> : Aller aux extrémités</li>

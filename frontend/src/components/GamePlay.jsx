@@ -423,14 +423,6 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                   </div>
                 )}
 
-                {isPsychic && (
-                  <div className="mt-6 text-center">
-                    <p className="text-gray-600 text-sm">
-                      Vous êtes le Maitre. Attendez que votre équipe positionne le curseur.
-                    </p>
-                  </div>
-                )}
-
                 {!game?.clue && !isPsychic && (
                   <div className="mt-6 text-center">
                     <p className="text-gray-600 text-sm">

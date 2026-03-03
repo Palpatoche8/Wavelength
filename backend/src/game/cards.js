@@ -27,15 +27,15 @@ export const CARDS = [
   { id: 21, left: "Pire Loisir", right: "Meilleur Loisir" },
   { id: 22, left: "Pire Animal", right: "Meilleur Animal" },
   { id: 23, left: "Pire Animal à 1vs1", right: "Meilleur Animal à 1vs1" },
-
-  // Cartes supplémentaires
   { id: 24, left: "Très Froid", right: "Très Chaud" },
   { id: 25, left: "Très Ennuyeux", right: "Très Intéressant" },
-  { id: 26, left: "Pas Cher", right: "Très Cher" },
-  { id: 27, left: "Très Facile", right: "Très Difficile" },
-  { id: 28, left: "Détesté", right: "Adoré" },
-  { id: 29, left: "Inutile", right: "Indispensable" },
-  { id: 30, left: "Silencieux", right: "Bruyant" }
+  { id: 26, left: "Très Facile", right: "Très Difficile" },
+  { id: 27, left: "Détesté", right: "Adoré" },
+  { id: 28, left: "Inutile", right: "Indispensable" },
+  { id: 29, left: "Silencieux", right: "Bruyant" },
+  { id: 30, left: "Pire Idée de Date", right: "Meilleure Idée de Date" },
+  { id: 31, left: "Pire Sport Aux JO", right: "Meilleur Sport aux JO" },
+
 ];
 
 /**
