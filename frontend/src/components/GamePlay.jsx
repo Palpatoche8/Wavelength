@@ -23,6 +23,11 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   const currentPlayer = currentRoom?.players.find(p => p.name === playerName);
   const isPsychic = currentPlayer?.id === game?.psychicId;
   const psychicPlayer = currentRoom?.players.find(p => p.id === game?.psychicId);
+  const gameMode = currentRoom?.settings?.gameMode || 'ffa';
+  const isTeamsMode = gameMode === 'teams';
+  const currentTeam = game?.currentTeam;
+  const isMyTeamPlaying = isTeamsMode && currentPlayer?.team === currentTeam;
+  const canPlay = !isPsychic && (!isTeamsMode || isMyTeamPlaying);
 
   // Hook pour gérer le timer
   const timerEnabled = currentRoom?.settings?.timerEnabled && currentRoom?.gameState === 'playing';
@@ -186,64 +191,158 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   // Affichage selon l'état du jeu
   if (currentRoom.gameState === 'finished') {
     // Partie terminée - affichage des scores finaux
-    const sortedPlayers = [...currentRoom.players].sort((a, b) => b.score - a.score);
+    if (isTeamsMode) {
+      // Mode par équipe : afficher les scores des équipes
+      const blueScore = currentRoom.teams?.blue?.score || 0;
+      const redScore = currentRoom.teams?.red?.score || 0;
+      const winner = blueScore > redScore ? 'blue' : redScore > blueScore ? 'red' : 'tie';
 
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-50 to-pink-100">
-        <div className="max-w-2xl w-full">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h2 className="text-4xl font-bold text-center mb-6 text-purple-800">
-               Partie terminée !
-            </h2>
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-50 to-pink-100">
+          <div className="max-w-2xl w-full">
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <h2 className="text-4xl font-bold text-center mb-6 text-purple-800">
+                 Partie terminée !
+              </h2>
 
-            {/* Podium */}
-            <div className="space-y-3 mb-8">
-              {sortedPlayers.map((player, index) => (
-                <div
-                  key={player.id}
-                  className={`flex items-center justify-between p-4 rounded-lg ${
-                    index === 0
-                      ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 border-2 border-yellow-400'
-                      : index === 1
-                      ? 'bg-gradient-to-r from-gray-100 to-gray-200 border-2 border-gray-400'
-                      : index === 2
-                      ? 'bg-gradient-to-r from-orange-100 to-orange-200 border-2 border-orange-400'
-                      : 'bg-gray-50 border border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">
-                      {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
-                    </span>
-                    <span className="font-semibold">{player.name}</span>
-                    {player.name === playerName && (
-                      <span className="text-sm text-purple-600">(Vous)</span>
-                    )}
-                  </div>
-                  <ScorePulse value={player.score} className="text-2xl font-bold" /> pts
+              {/* Résultat */}
+              {winner !== 'tie' && (
+                <div className="text-center mb-6">
+                  <p className="text-2xl font-bold text-gray-800">
+                    🏆 Équipe {winner === 'blue' ? 'Bleue' : 'Rouge'} gagne !
+                  </p>
                 </div>
-              ))}
-            </div>
+              )}
+              {winner === 'tie' && (
+                <div className="text-center mb-6">
+                  <p className="text-2xl font-bold text-gray-800">
+                    🤝 Égalité !
+                  </p>
+                </div>
+              )}
 
-            {/* Actions */}
-            <div className="flex gap-4">
-              <button
-                onClick={handleResetGame}
-                className="flex-1 py-3 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition"
-              >
-                 Rejouer
-              </button>
-              <button
-                onClick={onLeaveRoom}
-                className="flex-1 py-3 px-6 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition"
-              >
-                 Quitter
-              </button>
+              {/* Scores des équipes */}
+              <div className="space-y-4 mb-8">
+                {/* Équipe Bleue */}
+                <div className={`p-6 rounded-lg ${winner === 'blue' ? 'bg-gradient-to-r from-blue-100 to-blue-200 border-4 border-blue-500' : 'bg-blue-50 border-2 border-blue-300'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-2xl font-bold text-blue-800">🔵 Équipe Bleue</h3>
+                    <div className="flex items-center gap-1">
+                      <ScorePulse value={blueScore} className="text-3xl font-bold text-blue-800" />
+                      <span className="text-3xl font-bold text-blue-800">pts</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    {currentRoom.players.filter(p => p.team === 'blue').map(player => (
+                      <div key={player.id} className="text-sm text-blue-700">
+                        • {player.name} {player.name === playerName && '(Vous)'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Équipe Rouge */}
+                <div className={`p-6 rounded-lg ${winner === 'red' ? 'bg-gradient-to-r from-red-100 to-red-200 border-4 border-red-500' : 'bg-red-50 border-2 border-red-300'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-2xl font-bold text-red-800">🔴 Équipe Rouge</h3>
+                    <div className="flex items-center gap-1">
+                      <ScorePulse value={redScore} className="text-3xl font-bold text-red-800" />
+                      <span className="text-3xl font-bold text-red-800">pts</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    {currentRoom.players.filter(p => p.team === 'red').map(player => (
+                      <div key={player.id} className="text-sm text-red-700">
+                        • {player.name} {player.name === playerName && '(Vous)'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-4">
+                <button
+                  onClick={handleResetGame}
+                  className="flex-1 py-3 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition"
+                >
+                   Rejouer
+                </button>
+                <button
+                  onClick={onLeaveRoom}
+                  className="flex-1 py-3 px-6 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition"
+                >
+                   Quitter
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    } else {
+      // Mode chacun pour soi : afficher les scores individuels
+      const sortedPlayers = [...currentRoom.players].sort((a, b) => b.score - a.score);
+
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-50 to-pink-100">
+          <div className="max-w-2xl w-full">
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <h2 className="text-4xl font-bold text-center mb-6 text-purple-800">
+                 Partie terminée !
+              </h2>
+
+              {/* Podium */}
+              <div className="space-y-3 mb-8">
+                {sortedPlayers.map((player, index) => (
+                  <div
+                    key={player.id}
+                    className={`flex items-center justify-between p-4 rounded-lg ${
+                      index === 0
+                        ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 border-2 border-yellow-400'
+                        : index === 1
+                        ? 'bg-gradient-to-r from-gray-100 to-gray-200 border-2 border-gray-400'
+                        : index === 2
+                        ? 'bg-gradient-to-r from-orange-100 to-orange-200 border-2 border-orange-400'
+                        : 'bg-gray-50 border border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">
+                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
+                      </span>
+                      <span className="font-semibold">{player.name}</span>
+                      {player.name === playerName && (
+                        <span className="text-sm text-purple-600">(Vous)</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ScorePulse value={player.score} className="text-2xl font-bold" />
+                      <span className="text-2xl font-bold">pts</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-4">
+                <button
+                  onClick={handleResetGame}
+                  className="flex-1 py-3 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition"
+                >
+                   Rejouer
+                </button>
+                <button
+                  onClick={onLeaveRoom}
+                  className="flex-1 py-3 px-6 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition"
+                >
+                   Quitter
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
 
   return (
@@ -296,32 +395,99 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
           {/* Colonne gauche - Joueurs et scores */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-              <h3 className="text-lg font-semibold mb-4">👥 Joueurs</h3>
-              <div className="space-y-2">
-                {currentRoom.players.map((player) => (
-                  <div
-                    key={player.id}
-                    className={`flex items-center justify-between p-3 rounded-lg ${
-                      player.id === game?.psychicId
-                        ? 'bg-purple-100 border-2 border-purple-400'
-                        : player.name === playerName
-                        ? 'bg-blue-50 border border-blue-300'
-                        : 'bg-gray-50'
-                    }`}
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {player.name}
-                        {player.name === playerName && ' (Vous)'}
-                      </p>
-                      {player.id === game?.psychicId && (
-                        <p className="text-xs text-purple-600"> Maitre</p>
+              {isTeamsMode ? (
+                <>
+                  <h3 className="text-lg font-semibold mb-4">🎯 Équipes</h3>
+                  <div className="space-y-3">
+                    {/* Équipe Bleue */}
+                    <div className={`p-3 rounded-lg ${currentTeam === 'blue' ? 'bg-blue-100 border-2 border-blue-500' : 'bg-blue-50 border border-blue-300'}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-bold text-blue-800">🔵 Bleue</h4>
+                        <ScorePulse value={currentRoom.teams?.blue?.score || 0} className="font-bold text-lg text-blue-800" />
+                      </div>
+                      {currentTeam === 'blue' && (
+                        <p className="text-xs text-blue-600 mb-2">▶ À leur tour</p>
                       )}
+                      <div className="space-y-1">
+                        {currentRoom.players.filter(p => p.team === 'blue').map((player) => (
+                          <div
+                            key={player.id}
+                            className={`flex items-center justify-between px-2 py-1 rounded ${
+                              player.id === game?.psychicId
+                                ? 'bg-purple-200 border border-purple-400'
+                                : 'bg-white'
+                            }`}
+                          >
+                            <p className="text-sm">
+                              {player.name}
+                              {player.name === playerName && ' (Vous)'}
+                              {player.id === game?.psychicId && ' 🧙'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <ScorePulse value={player.score} className="font-bold text-lg" />
+
+                    {/* Équipe Rouge */}
+                    <div className={`p-3 rounded-lg ${currentTeam === 'red' ? 'bg-red-100 border-2 border-red-500' : 'bg-red-50 border border-red-300'}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-bold text-red-800">🔴 Rouge</h4>
+                        <ScorePulse value={currentRoom.teams?.red?.score || 0} className="font-bold text-lg text-red-800" />
+                      </div>
+                      {currentTeam === 'red' && (
+                        <p className="text-xs text-red-600 mb-2">▶ À leur tour</p>
+                      )}
+                      <div className="space-y-1">
+                        {currentRoom.players.filter(p => p.team === 'red').map((player) => (
+                          <div
+                            key={player.id}
+                            className={`flex items-center justify-between px-2 py-1 rounded ${
+                              player.id === game?.psychicId
+                                ? 'bg-purple-200 border border-purple-400'
+                                : 'bg-white'
+                            }`}
+                          >
+                            <p className="text-sm">
+                              {player.name}
+                              {player.name === playerName && ' (Vous)'}
+                              {player.id === game?.psychicId && ' 🧙'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg font-semibold mb-4">👥 Joueurs</h3>
+                  <div className="space-y-2">
+                    {currentRoom.players.map((player) => (
+                      <div
+                        key={player.id}
+                        className={`flex items-center justify-between p-3 rounded-lg ${
+                          player.id === game?.psychicId
+                            ? 'bg-purple-100 border-2 border-purple-400'
+                            : player.name === playerName
+                            ? 'bg-blue-50 border border-blue-300'
+                            : 'bg-gray-50'
+                        }`}
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {player.name}
+                            {player.name === playerName && ' (Vous)'}
+                          </p>
+                          {player.id === game?.psychicId && (
+                            <p className="text-xs text-purple-600"> Maitre</p>
+                          )}
+                        </div>
+                        <ScorePulse value={player.score} className="font-bold text-lg" />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -365,8 +531,10 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                   </strong>
                 </p>
                 <p className="text-sm text-gray-600 mb-4">
-                  Donnez un indice pour aider votre équipe à deviner cette valeur (entre 1 et 20).
-                  Plus votre équipe se rapproche de la cible, plus vous gagnez de points !
+                  {isTeamsMode
+                    ? `Donnez un indice pour aider votre équipe ${currentPlayer?.team === 'blue' ? '🔵 Bleue' : '🔴 Rouge'} à deviner cette valeur (entre 1 et 20).`
+                    : 'Donnez un indice pour aider les joueurs à deviner cette valeur (entre 1 et 20).'}
+                  {' '}Plus {isTeamsMode ? 'votre équipe' : 'les joueurs'} se rapprochent de la cible, plus vous gagnez de points !
                 </p>
 
                 <div className="flex gap-3">
@@ -408,11 +576,11 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                   targetValue={isPsychic ? targetValue : null}
                   showTarget={isPsychic}
                   showColoredZones={isPsychic && !game?.clue}
-                  disabled={isPsychic || !game?.clue}
+                  disabled={isPsychic || !game?.clue || (isTeamsMode && !isMyTeamPlaying)}
                 />
 
-                {/* Bouton de validation (joueurs seulement, après l'indice) */}
-                {!isPsychic && game?.clue && (
+                {/* Bouton de validation (joueurs qui peuvent jouer, après l'indice) */}
+                {canPlay && game?.clue && (
                   <div className="mt-6 text-center">
                     <button
                       onClick={handleSubmitGuess}
@@ -426,7 +594,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 {isPsychic && (
                   <div className="mt-6 text-center">
                     <p className="text-gray-600 text-sm">
-                      Vous êtes le Maitre. Attendez que votre équipe positionne le curseur.
+                      Vous êtes le Maitre. Attendez que {isTeamsMode ? 'votre équipe' : 'les joueurs'} positionnent le curseur.
                     </p>
                   </div>
                 )}
@@ -435,6 +603,14 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                   <div className="mt-6 text-center">
                     <p className="text-gray-600 text-sm">
                       Attendez l'indice du Maitre...
+                    </p>
+                  </div>
+                )}
+
+                {isTeamsMode && !isPsychic && !isMyTeamPlaying && game?.clue && (
+                  <div className="mt-6 text-center">
+                    <p className="text-gray-600 text-sm">
+                      C'est au tour de l'équipe {currentTeam === 'blue' ? 'Bleue' : 'Rouge'}. Attendez votre tour...
                     </p>
                   </div>
                 )}

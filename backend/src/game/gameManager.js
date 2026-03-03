@@ -48,18 +48,23 @@ class GameManager {
         name: playerName,
         isHost: true,
         joinedAt: new Date(),
-        score: 0
+        score: 0,
+        team: null // 'blue' ou 'red' en mode teams
       }],
       createdAt: new Date(),
       gameState: 'waiting', // waiting, playing, revealing, scoring, finished
       game: null, // Données de la partie en cours
+      teams: {
+        blue: { score: 0, players: [] },
+        red: { score: 0, players: [] }
+      },
       settings: {
         // Paramètres par défaut
         timerEnabled: false,
         timerDuration: null, // null, 30, 60, 90
         totalRounds: null, // null (= 2 * nb joueurs), 5, 10, 15
         difficulty: 'normal', // easy, normal, hard
-        mode: 'coop', // coop, teams
+        gameMode: 'ffa', // 'ffa' (chacun pour soi) ou 'teams' (par équipe)
         soundEnabled: true,
         animationsEnabled: true,
         customCardsEnabled: false,
@@ -102,7 +107,8 @@ class GameManager {
       name: playerName,
       isHost: false,
       joinedAt: new Date(),
-      score: 0
+      score: 0,
+      team: null // 'blue' ou 'red' en mode teams
     });
 
     console.log(`✅ ${playerName} a rejoint la room ${roomCode}`);
@@ -147,6 +153,33 @@ class GameManager {
   }
 
   /**
+   * Assigne les joueurs aux équipes (bleu et rouge) en alternance
+   * @param {string} roomCode - Code de la room
+   */
+  assignTeams(roomCode) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room) return;
+
+    // Réinitialiser les équipes
+    room.teams.blue.players = [];
+    room.teams.red.players = [];
+    room.teams.blue.score = 0;
+    room.teams.red.score = 0;
+
+    // Assigner les joueurs en alternance
+    room.players.forEach((player, index) => {
+      const team = index % 2 === 0 ? 'blue' : 'red';
+      player.team = team;
+      room.teams[team].players.push(player.id);
+    });
+
+    console.log(`👥 Équipes assignées dans ${roomCode}:`);
+    console.log(`   Bleu: ${room.teams.blue.players.length} joueurs`);
+    console.log(`   Rouge: ${room.teams.red.players.length} joueurs`);
+  }
+
+  /**
    * Démarre une partie dans une room
    * @param {string} roomCode - Code de la room
    * @param {Object} settings - Paramètres optionnels de la partie
@@ -168,6 +201,11 @@ class GameManager {
     // Fusionner les settings fournis avec les settings actuels de la room
     if (settings && Object.keys(settings).length > 0) {
       room.settings = { ...room.settings, ...settings };
+    }
+
+    // Si mode teams, assigner les équipes
+    if (room.settings.gameMode === 'teams') {
+      this.assignTeams(roomCode);
     }
 
     // Initialiser le jeu avec custom cards si activées
@@ -216,7 +254,9 @@ class GameManager {
       // NEW: Timer fields
       roundStartTime: null,
       roundTimeLimit: room.settings.timerDuration,
-      timerExpired: false
+      timerExpired: false,
+      // NEW: Teams mode fields
+      currentTeam: room.settings.gameMode === 'teams' ? 'blue' : null // Équipe qui joue (mode teams)
     };
 
     console.log(`🎮 Partie démarrée dans ${roomCode}`);
@@ -261,10 +301,11 @@ class GameManager {
   /**
    * Les joueurs soumettent leur réponse (valeur sur l'échelle 1-20)
    * @param {string} roomCode - Code de la room
+   * @param {string} playerId - ID du joueur qui soumet
    * @param {number} value - Valeur de la réponse (1-20)
    * @returns {Object|null} Room mise à jour ou null si erreur
    */
-  submitGuess(roomCode, value) {
+  submitGuess(roomCode, playerId, value) {
     const room = this.rooms.get(roomCode);
 
     if (!room || !room.game) {
@@ -273,6 +314,15 @@ class GameManager {
 
     if (room.gameState !== 'playing') {
       return null;
+    }
+
+    // En mode teams, vérifier que le joueur fait partie de l'équipe qui joue
+    if (room.settings.gameMode === 'teams') {
+      const player = room.players.find(p => p.id === playerId);
+      if (!player || player.team !== room.game.currentTeam) {
+        console.log(`❌ ${playerId} n'est pas dans l'équipe qui joue (${room.game.currentTeam})`);
+        return null;
+      }
     }
 
     // Valider que la valeur est entre 1 et 20
@@ -358,12 +408,19 @@ class GameManager {
     const difficulty = room.settings?.difficulty || 'normal';
     const result = this.calculateScore(targetValue, guessValue, difficulty);
 
-    // Ajouter les points à tous les joueurs (sauf le psychique)
-    room.players.forEach(player => {
-      if (player.id !== room.game.psychicId) {
+    // Gestion des points selon le mode de jeu
+    if (room.settings.gameMode === 'teams') {
+      // Mode par équipe : l'équipe qui joue gagne les points
+      const currentTeam = room.game.currentTeam;
+      room.teams[currentTeam].score += result.points;
+
+      console.log(`   Équipe ${currentTeam} gagne ${result.points} points`);
+    } else {
+      // Mode chacun pour soi : tous les joueurs gagnent des points
+      room.players.forEach(player => {
         player.score += result.points;
-      }
-    });
+      });
+    }
 
     room.gameState = 'scoring';
     room.game.lastResult = result;
@@ -407,8 +464,27 @@ class GameManager {
     }
 
     // Passer au joueur psychique suivant
-    game.psychicIndex = (game.psychicIndex + 1) % room.players.length;
-    game.psychicId = room.players[game.psychicIndex].id;
+    if (room.settings.gameMode === 'teams') {
+      // Mode par équipe : alterner l'équipe qui joue (sauf au premier round)
+      if (game.currentRound > 0) {
+        game.currentTeam = game.currentTeam === 'blue' ? 'red' : 'blue';
+      }
+      // Au premier round, currentTeam est déjà défini à 'blue' dans startGame
+
+      // Choisir un psychique de l'équipe qui joue
+      const teamPlayers = room.players.filter(p => p.team === game.currentTeam);
+      const randomTeamPlayerIndex = Math.floor(Math.random() * teamPlayers.length);
+      const psychic = teamPlayers[randomTeamPlayerIndex];
+
+      game.psychicId = psychic.id;
+      game.psychicIndex = room.players.findIndex(p => p.id === psychic.id);
+
+      console.log(`   Équipe ${game.currentTeam} joue`);
+    } else {
+      // Mode chacun pour soi : rotation normale
+      game.psychicIndex = (game.psychicIndex + 1) % room.players.length;
+      game.psychicId = room.players[game.psychicIndex].id;
+    }
 
     // Tirer une nouvelle carte
     game.currentCardIndex = (game.currentCardIndex + 1) % game.deck.length;
