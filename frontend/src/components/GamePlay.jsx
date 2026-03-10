@@ -346,19 +346,19 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-2">
       {/* Confetti effect sur zone verte */}
       <ConfettiEffect trigger={triggerConfetti} />
 
       <div className="max-w-6xl mx-auto">
         {/* En-tête */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="bg-white rounded-lg shadow-lg p-2 mb-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">
+              <h2 className="text-lg font-bold text-gray-800">
                  WaveLength
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs text-gray-600">
                 Room: <span className="font-mono font-bold">{currentRoom.code}</span>
               </p>
             </div>
@@ -384,31 +384,31 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
             <button
               onClick={onLeaveRoom}
-              className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg transition"
+              className="px-3 py-1 text-sm bg-gray-300 hover:bg-gray-400 rounded-lg transition"
             >
                Quitter
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Colonne gauche - Joueurs et scores */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div className="bg-white rounded-lg shadow-lg p-3 mb-3">
               {isTeamsMode ? (
                 <>
-                  <h3 className="text-lg font-semibold mb-4">🎯 Équipes</h3>
-                  <div className="space-y-3">
+                  <h3 className="text-sm font-semibold mb-2">🎯 Équipes</h3>
+                  <div className="space-y-2">
                     {/* Équipe Bleue */}
-                    <div className={`p-3 rounded-lg ${currentTeam === 'blue' ? 'bg-blue-100 border-2 border-blue-500' : 'bg-blue-50 border border-blue-300'}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-bold text-blue-800">🔵 Bleue</h4>
-                        <ScorePulse value={currentRoom.teams?.blue?.score || 0} className="font-bold text-lg text-blue-800" />
+                    <div className={`p-2 rounded-lg ${currentTeam === 'blue' ? 'bg-blue-100 border-2 border-blue-500' : 'bg-blue-50 border border-blue-300'}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-bold text-sm text-blue-800">🔵 Bleue</h4>
+                        <ScorePulse value={currentRoom.teams?.blue?.score || 0} className="font-bold text-sm text-blue-800" />
                       </div>
                       {currentTeam === 'blue' && (
-                        <p className="text-xs text-blue-600 mb-2">▶ À leur tour</p>
+                        <p className="text-xs text-blue-600 mb-1">▶ À leur tour</p>
                       )}
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {currentRoom.players.filter(p => p.team === 'blue').map((player) => (
                           <div
                             key={player.id}
@@ -429,15 +429,15 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                     </div>
 
                     {/* Équipe Rouge */}
-                    <div className={`p-3 rounded-lg ${currentTeam === 'red' ? 'bg-red-100 border-2 border-red-500' : 'bg-red-50 border border-red-300'}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-bold text-red-800">🔴 Rouge</h4>
-                        <ScorePulse value={currentRoom.teams?.red?.score || 0} className="font-bold text-lg text-red-800" />
+                    <div className={`p-2 rounded-lg ${currentTeam === 'red' ? 'bg-red-100 border-2 border-red-500' : 'bg-red-50 border border-red-300'}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-bold text-sm text-red-800">🔴 Rouge</h4>
+                        <ScorePulse value={currentRoom.teams?.red?.score || 0} className="font-bold text-sm text-red-800" />
                       </div>
                       {currentTeam === 'red' && (
-                        <p className="text-xs text-red-600 mb-2">▶ À leur tour</p>
+                        <p className="text-xs text-red-600 mb-1">▶ À leur tour</p>
                       )}
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {currentRoom.players.filter(p => p.team === 'red').map((player) => (
                           <div
                             key={player.id}
@@ -460,12 +460,12 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 </>
               ) : (
                 <>
-                  <h3 className="text-lg font-semibold mb-4">👥 Joueurs</h3>
-                  <div className="space-y-2">
+                  <h3 className="text-sm font-semibold mb-2">👥 Joueurs</h3>
+                  <div className="space-y-1">
                     {currentRoom.players.map((player) => (
                       <div
                         key={player.id}
-                        className={`flex items-center justify-between p-3 rounded-lg ${
+                        className={`flex items-center justify-between p-2 rounded-lg ${
                           player.id === game?.psychicId
                             ? 'bg-purple-100 border-2 border-purple-400'
                             : player.name === playerName
@@ -474,7 +474,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                         }`}
                       >
                         <div>
-                          <p className="font-medium">
+                          <p className="font-medium text-sm">
                             {player.name}
                             {player.name === playerName && ' (Vous)'}
                           </p>
@@ -482,7 +482,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                             <p className="text-xs text-purple-600"> Maitre</p>
                           )}
                         </div>
-                        <ScorePulse value={player.score} className="font-bold text-lg" />
+                        <ScorePulse value={player.score} className="font-bold text-sm" />
                       </div>
                     ))}
                   </div>
@@ -495,22 +495,22 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
           <div className="lg:col-span-2">
             {/* Carte actuelle - SEULEMENT le texte, pas de spectre */}
             {game?.currentCard && (
-              <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                <h3 className="text-center text-lg font-semibold text-gray-700 mb-3">
+              <div className="bg-white rounded-lg shadow-lg p-3 mb-3">
+                <h3 className="text-center text-sm font-semibold text-gray-700 mb-2">
                   Thème
                 </h3>
-                <div className="flex justify-between items-center gap-4">
+                <div className="flex justify-between items-center gap-2">
                   <div className="flex-1 text-center">
-                    <div className="bg-blue-100 rounded-lg p-4 border-2 border-blue-300">
-                      <p className="text-sm font-bold text-blue-800">
+                    <div className="bg-blue-100 rounded-lg p-2 border-2 border-blue-300">
+                      <p className="text-xs font-bold text-blue-800">
                         {game.currentCard.left}
                       </p>
                     </div>
                   </div>
-                  <div className="text-2xl text-gray-400">↔</div>
+                  <div className="text-lg text-gray-400">↔</div>
                   <div className="flex-1 text-center">
-                    <div className="bg-orange-100 rounded-lg p-4 border-2 border-orange-300">
-                      <p className="text-sm font-bold text-orange-800">
+                    <div className="bg-orange-100 rounded-lg p-2 border-2 border-orange-300">
+                      <p className="text-xs font-bold text-orange-800">
                         {game.currentCard.right}
                       </p>
                     </div>
@@ -521,37 +521,37 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
             {/* Zone psychique */}
             {isPsychic && !game?.clue && (
-              <div className="bg-purple-100 border-2 border-purple-400 rounded-xl p-6 mb-6">
-                <h3 className="text-xl font-bold text-purple-800 mb-4">
+              <div className="bg-purple-100 border-2 border-purple-400 rounded-lg p-3 mb-3">
+                <h3 className="text-lg font-bold text-purple-800 mb-2">
                    Vous êtes le Maitre !
                 </h3>
-                <p className="text-gray-700 mb-2">
-                  La valeur secrète est : <strong className="text-3xl text-purple-900">
+                <p className="text-gray-700 mb-1">
+                  La valeur secrète est : <strong className="text-2xl text-purple-900">
                     {targetValue !== null ? targetValue : '...'}
                   </strong>
                 </p>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-xs text-gray-600 mb-2">
                   {isTeamsMode
                     ? `Donnez un indice pour aider votre équipe ${currentPlayer?.team === 'blue' ? '🔵 Bleue' : '🔴 Rouge'} à deviner cette valeur (entre 1 et 20).`
                     : 'Donnez un indice pour aider les joueurs à deviner cette valeur (entre 1 et 20).'}
                   {' '}Plus {isTeamsMode ? 'votre équipe' : 'les joueurs'} se rapprochent de la cible, plus vous gagnez de points !
                 </p>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <input
                     type="text"
                     value={clueText}
                     onChange={(e) => setClueText(e.target.value)}
                     placeholder="Votre indice..."
                     maxLength={50}
-                    className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                    className="flex-1 px-3 py-2 text-sm border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                     onKeyPress={(e) => e.key === 'Enter' && handleSubmitClue()}
                   />
                   <button
                     onClick={handleSubmitClue}
-                    className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition"
+                    className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition"
                   >
-                    Envoyer l'indice
+                    Envoyer
                   </button>
                 </div>
               </div>
@@ -559,17 +559,17 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
             {/* Indice affiché */}
             {game?.clue && (
-              <div className="bg-blue-100 border-2 border-blue-400 rounded-xl p-6 mb-6">
-                <h3 className="text-lg font-semibold text-blue-800 mb-2">
+              <div className="bg-blue-100 border-2 border-blue-400 rounded-lg p-3 mb-3">
+                <h3 className="text-sm font-semibold text-blue-800 mb-1">
                    Indice de {psychicPlayer?.name}
                 </h3>
-                <p className="text-2xl font-bold text-blue-900">"{game.clue}"</p>
+                <p className="text-lg font-bold text-blue-900">"{game.clue}"</p>
               </div>
             )}
 
             {/* Cadran */}
             {!showResult && (
-              <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+              <div className="bg-white rounded-lg shadow-lg p-3 mb-3">
                 <Dial
                   value={dialValue}
                   onValueChange={setDialValue}
@@ -581,35 +581,35 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
                 {/* Bouton de validation (joueurs qui peuvent jouer, après l'indice) */}
                 {canPlay && game?.clue && (
-                  <div className="mt-6 text-center">
+                  <div className="mt-3 text-center">
                     <button
                       onClick={handleSubmitGuess}
-                      className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold text-lg hover:from-green-600 hover:to-emerald-700 transition shadow-lg"
+                      className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold text-base hover:from-green-600 hover:to-emerald-700 transition shadow-lg"
                     >
-                      ✓ Valider la réponse : {dialValue}
+                      ✓ Valider : {dialValue}
                     </button>
                   </div>
                 )}
 
                 {isPsychic && (
-                  <div className="mt-6 text-center">
-                    <p className="text-gray-600 text-sm">
+                  <div className="mt-3 text-center">
+                    <p className="text-gray-600 text-xs">
                       Vous êtes le Maitre. Attendez que {isTeamsMode ? 'votre équipe' : 'les joueurs'} positionnent le curseur.
                     </p>
                   </div>
                 )}
 
                 {!game?.clue && !isPsychic && (
-                  <div className="mt-6 text-center">
-                    <p className="text-gray-600 text-sm">
+                  <div className="mt-3 text-center">
+                    <p className="text-gray-600 text-xs">
                       Attendez l'indice du Maitre...
                     </p>
                   </div>
                 )}
 
                 {isTeamsMode && !isPsychic && !isMyTeamPlaying && game?.clue && (
-                  <div className="mt-6 text-center">
-                    <p className="text-gray-600 text-sm">
+                  <div className="mt-3 text-center">
+                    <p className="text-gray-600 text-xs">
                       C'est au tour de l'équipe {currentTeam === 'blue' ? 'Bleue' : 'Rouge'}. Attendez votre tour...
                     </p>
                   </div>
@@ -619,8 +619,8 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
             {/* Résultat */}
             {showResult && lastResult && (
-              <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                <h3 className="text-2xl font-bold text-center mb-6">
+              <div className="bg-white rounded-lg shadow-lg p-3 mb-3">
+                <h3 className="text-lg font-bold text-center mb-3">
                    Résultat du tour
                 </h3>
 
@@ -634,31 +634,31 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 />
 
                 {/* Affichage des valeurs - 2 encadrés côte à côte */}
-                <div className="grid grid-cols-2 gap-4 mt-6">
+                <div className="grid grid-cols-2 gap-2 mt-3">
                   {/* Valeur sélectionnée */}
-                  <div className="bg-white rounded-xl shadow-md border-2 border-gray-300 p-6 text-center">
-                    <p className="text-sm text-gray-600 mb-2 font-medium">Valeur sélectionnée</p>
-                    <p className="text-6xl font-bold text-gray-800">{lastResult.guessValue}</p>
+                  <div className="bg-white rounded-lg shadow-md border-2 border-gray-300 p-3 text-center">
+                    <p className="text-xs text-gray-600 mb-1 font-medium">Valeur sélectionnée</p>
+                    <p className="text-4xl font-bold text-gray-800">{lastResult.guessValue}</p>
                   </div>
 
                   {/* Cible */}
-                  <div className="bg-white rounded-xl shadow-md border-2 border-red-300 p-6 text-center">
-                    <p className="text-sm text-red-600 mb-2 font-medium"> Cible</p>
-                    <p className="text-6xl font-bold text-red-600">{lastResult.targetValue}</p>
+                  <div className="bg-white rounded-lg shadow-md border-2 border-red-300 p-3 text-center">
+                    <p className="text-xs text-red-600 mb-1 font-medium"> Cible</p>
+                    <p className="text-4xl font-bold text-red-600">{lastResult.targetValue}</p>
                   </div>
                 </div>
 
                 {/* Score - Grand encadré */}
-                <div className={`mt-4 p-8 rounded-xl border-4 ${getZoneColor(lastResult.zone)}`}>
+                <div className={`mt-2 p-4 rounded-lg border-4 ${getZoneColor(lastResult.zone)}`}>
                   <div className="text-center">
-                    <p className="text-sm font-semibold mb-3 uppercase tracking-wide">Score obtenu</p>
-                    <p className="text-7xl font-bold mb-3">
+                    <p className="text-xs font-semibold mb-2 uppercase tracking-wide">Score obtenu</p>
+                    <p className="text-5xl font-bold mb-2">
                       {lastResult.points} pts
                     </p>
-                    <p className="text-2xl font-semibold mb-2">
+                    <p className="text-lg font-semibold mb-1">
                       {getDistanceMessage(lastResult.distance)}
                     </p>
-                    <p className="text-base opacity-75">
+                    <p className="text-sm opacity-75">
                       Distance: <strong>{lastResult.distance}</strong>
                       {' '}•{' '}
                       Zone: <strong className="uppercase">{lastResult.zone}</strong>
@@ -668,10 +668,10 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
                 {/* Bouton suivant (hôte uniquement) */}
                 {currentPlayer?.isHost && (
-                  <div className="mt-6 text-center">
+                  <div className="mt-3 text-center">
                     <button
                       onClick={handleNextRound}
-                      className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold text-lg hover:from-indigo-700 hover:to-purple-700 transition shadow-lg"
+                      className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold text-base hover:from-indigo-700 hover:to-purple-700 transition shadow-lg"
                     >
                       ▶ Tour suivant
                     </button>
@@ -679,8 +679,8 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 )}
 
                 {!currentPlayer?.isHost && (
-                  <div className="mt-6 text-center">
-                    <p className="text-gray-600 text-sm">
+                  <div className="mt-3 text-center">
+                    <p className="text-gray-600 text-xs">
                       Attendez que l'hôte passe au tour suivant...
                     </p>
                   </div>

@@ -193,6 +193,9 @@ export function setupSocketHandlers(io) {
           result: resultData.result,
           room: resultData.room
         });
+
+        // Émettre aussi room-updated pour s'assurer que les scores sont bien mis à jour partout
+        io.to(roomCode).emit('room-updated', resultData.room);
       }
     });
 
