@@ -197,6 +197,31 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
 
                 {showSettings && (
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
+                    {/* Mode de jeu */}
+                    <div>
+                      <label className="block font-medium text-gray-700 mb-2">
+                        🎮 Mode de jeu
+                      </label>
+                      <select
+                        value={currentRoom.settings.gameMode || 'ffa'}
+                        onChange={(e) => {
+                          handleUpdateSettings({
+                            ...currentRoom.settings,
+                            gameMode: e.target.value
+                          });
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="ffa">Chacun pour soi</option>
+                        <option value="teams">Par équipe</option>
+                      </select>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {currentRoom.settings.gameMode === 'teams'
+                          ? '⚠️ Mode par équipe : les joueurs seront divisés en 2 équipes (bleu vs rouge)'
+                          : 'Chaque joueur gagne des points individuellement'}
+                      </p>
+                    </div>
+
                     {/* Timer */}
                     <div>
                       <label className="flex items-center justify-between mb-2">

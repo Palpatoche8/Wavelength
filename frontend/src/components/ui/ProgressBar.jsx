@@ -3,7 +3,9 @@
  */
 function ProgressBar({ currentRound, totalRounds }) {
   // Calculer le pourcentage de progression
-  const percentage = (currentRound / totalRounds) * 100;
+  // On compte les rounds TERMINÉS, donc currentRound - 1
+  const completedRounds = Math.max(0, currentRound - 1);
+  const percentage = (completedRounds / totalRounds) * 100;
 
   return (
     <div className="w-full max-w-md mx-auto">
