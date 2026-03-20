@@ -18,7 +18,7 @@ class GameManager {
    * @returns {string} Code de room (ex: "ABCD")
    */
   generateRoomCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ';
     let code = '';
 
     // Génère un code et vérifie qu'il n'existe pas déjà
@@ -413,12 +413,23 @@ class GameManager {
       // Mode par équipe : l'équipe qui joue gagne les points
       const currentTeam = room.game.currentTeam;
       room.teams[currentTeam].score += result.points;
-
       console.log(`   Équipe ${currentTeam} gagne ${result.points} points`);
-    } else {
-      // Mode chacun pour soi : tous les joueurs gagnent des points
+    } 
+    else {
+      console.log(`  MARCHE STP`);
+      const guessingPlayerId = room.game.guessingPlayerId;
+      const psychicId = room.game.psychicId;
+      const totalPlayers = room.players.length;
+      console.log(`  guessingPlayerId: ${guessingPlayerId}, psychicId: ${psychicId}, totalPlayers: ${totalPlayers}`);
       room.players.forEach(player => {
-        player.score += result.points;
+         if (player.id === guessingPlayerId) {
+            player.score += result.points;
+            console.log(`   ${player.name} gagne ${result.points} points`);
+          }
+          else if (player.id === psychicId && totalPlayers > 2) {
+            player.score += result.points;
+            console.log(`   ${player.name} (Maître) gagne ${result.points} points`);
+         }
       });
     }
 

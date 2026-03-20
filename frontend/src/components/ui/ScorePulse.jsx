@@ -10,6 +10,13 @@ function ScorePulse({ value, className = '' }) {
   const [shouldPulse, setShouldPulse] = useState(false);
 
   useEffect(() => {
+  if (value !== displayValue && value !== prevValue) {
+    setDisplayValue(value);
+    setPrevValue(value);
+  }
+  }, [value]);
+
+  useEffect(() => {
     if (value !== prevValue) {
       // Trigger pulse animation
       setShouldPulse(true);
