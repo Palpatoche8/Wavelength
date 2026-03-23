@@ -151,6 +151,17 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
     });
   };
 
+  // Auto-progression après 6 secondes en mode scoring
+  useEffect(() => {
+    if (gameState === 'scoring' && showResult) {
+      const timer = setTimeout(() => {
+        handleNextRound();
+      }, 6000); // 6 secondes
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameState, showResult]);
+
   // Rejouer - Redémarrer directement une nouvelle partie
   const handleResetGame = () => {
     // Reset puis redémarrer
@@ -462,29 +473,38 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 <>
                   <h3 className="text-sm font-semibold mb-2">👥 Joueurs</h3>
                   <div className="space-y-1">
-                    {currentRoom.players.map((player) => (
-                      <div
-                        key={player.id}
-                        className={`flex items-center justify-between p-2 rounded-lg ${
-                          player.id === game?.psychicId
-                            ? 'bg-purple-100 border-2 border-purple-400'
-                            : player.name === playerName
-                            ? 'bg-blue-50 border border-blue-300'
-                            : 'bg-gray-50'
-                        }`}
-                      >
-                        <div>
-                          <p className="font-medium text-sm">
-                            {player.name}
-                            {player.name === playerName && ' (Vous)'}
-                          </p>
-                          {player.id === game?.psychicId && (
-                            <p className="text-xs text-purple-600"> Maitre</p>
-                          )}
+                    {currentRoom.players.map((player) => {
+                      const hasAnswered = game?.guesses?.some(g => g.playerId === player.id);
+                      return (
+                        <div
+                          key={player.id}
+                          className={`flex items-center justify-between p-2 rounded-lg ${
+                            player.id === game?.psychicId
+                              ? 'bg-purple-100 border-2 border-purple-400'
+                              : player.name === playerName
+                              ? 'bg-blue-50 border border-blue-300'
+                              : 'bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium text-sm">
+                                {player.name}
+                                {player.name === playerName && ' (Vous)'}
+                              </p>
+                              {player.id === game?.psychicId && (
+                                <p className="text-xs text-purple-600"> Maitre</p>
+                              )}
+                            </div>
+                            {/* Pastille verte si le joueur a répondu */}
+                            {hasAnswered && player.id !== game?.psychicId && gameState === 'playing' && (
+                              <span className="inline-block w-3 h-3 bg-green-500 rounded-full" title="A répondu"></span>
+                            )}
+                          </div>
+                          <ScorePulse value={player.score} className="font-bold text-sm" />
                         </div>
-                        <ScorePulse value={player.score} className="font-bold text-sm" />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </>
               )}
@@ -615,47 +635,88 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                    Résultat du tour
                 </h3>
 
-                {/* Cadran avec cible révélée */}
-                <Dial
-                  value={lastResult.guessValue}
-                  onValueChange={() => {}}
-                  targetValue={lastResult.targetValue}
-                  showTarget={true}
-                  disabled={true}
-                />
+                {/* Mode teams ou résultat unique */}
+                {(!lastResult.guesses || lastResult.guesses.length === 1) && (
+                  <>
+                    {/* Cadran avec cible révélée */}
+                    <Dial
+                      value={lastResult.guesses?.[0]?.guessValue || lastResult.guessValue || 10}
+                      onValueChange={() => {}}
+                      targetValue={lastResult.targetValue}
+                      showTarget={true}
+                      disabled={true}
+                    />
 
-                {/* Affichage des valeurs - 2 encadrés côte à côte */}
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {/* Valeur sélectionnée */}
-                  <div className="bg-white rounded-lg shadow-md border-2 border-gray-300 p-2 text-center">
-                    <p className="text-xs text-gray-600 mb-0.5 font-medium">Valeur sélectionnée</p>
-                    <p className="text-3xl font-bold text-gray-800">{lastResult.guessValue}</p>
-                  </div>
+                    {/* Affichage des valeurs - 2 encadrés côte à côte */}
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {/* Valeur sélectionnée */}
+                      <div className="bg-white rounded-lg shadow-md border-2 border-gray-300 p-2 text-center">
+                        <p className="text-xs text-gray-600 mb-0.5 font-medium">Valeur sélectionnée</p>
+                        <p className="text-3xl font-bold text-gray-800">
+                          {lastResult.guesses?.[0]?.guessValue || lastResult.guessValue || 10}
+                        </p>
+                      </div>
 
-                  {/* Cible */}
-                  <div className="bg-white rounded-lg shadow-md border-2 border-red-300 p-2 text-center">
-                    <p className="text-xs text-red-600 mb-0.5 font-medium"> Cible</p>
-                    <p className="text-3xl font-bold text-red-600">{lastResult.targetValue}</p>
-                  </div>
-                </div>
+                      {/* Cible */}
+                      <div className="bg-white rounded-lg shadow-md border-2 border-red-300 p-2 text-center">
+                        <p className="text-xs text-red-600 mb-0.5 font-medium"> Cible</p>
+                        <p className="text-3xl font-bold text-red-600">{lastResult.targetValue}</p>
+                      </div>
+                    </div>
 
-                {/* Score - Grand encadré */}
-                <div className={`mt-2 p-2 rounded-lg border-2 ${getZoneColor(lastResult.zone)}`}>
-                  <div className="text-center">
-                    <p className="text-xs font-semibold mb-1 uppercase tracking-wide">Score obtenu</p>
-                    <p className="text-3xl font-bold mb-0.5">
-                      {lastResult.points} pts
-                    </p>
-                    <p className="text-base font-semibold mb-0.5">
-                      {getDistanceMessage(lastResult.distance)}
-                    </p>
-                    <p className="text-xs opacity-75">
-                      Distance: <strong>{lastResult.distance}</strong>
-                      {' '}•{' '}
-                      Zone: <strong className="uppercase">{lastResult.zone}</strong>
-                    </p>
+                    {/* Score - Grand encadré */}
+                    <div className={`mt-2 p-2 rounded-lg border-2 ${getZoneColor(lastResult.guesses?.[0]?.zone || lastResult.zone)}`}>
+                      <div className="text-center">
+                        <p className="text-xs font-semibold mb-1 uppercase tracking-wide">Score obtenu</p>
+                        <p className="text-3xl font-bold mb-0.5">
+                          {lastResult.guesses?.[0]?.points || lastResult.points || 0} pts
+                        </p>
+                        <p className="text-base font-semibold mb-0.5">
+                          {getDistanceMessage(lastResult.guesses?.[0]?.distance || lastResult.distance || 0)}
+                        </p>
+                        <p className="text-xs opacity-75">
+                          Distance: <strong>{lastResult.guesses?.[0]?.distance || lastResult.distance || 0}</strong>
+                          {' '}•{' '}
+                          Zone: <strong className="uppercase">{lastResult.guesses?.[0]?.zone || lastResult.zone || 'white'}</strong>
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Mode chacun pour soi avec plusieurs réponses */}
+                {lastResult.guesses && lastResult.guesses.length > 1 && (
+                  <div className="space-y-2">
+                    {/* Afficher la cible */}
+                    <div className="bg-red-50 rounded-lg border-2 border-red-300 p-2 text-center">
+                      <p className="text-xs text-red-600 mb-0.5 font-medium"> Cible</p>
+                      <p className="text-3xl font-bold text-red-600">{lastResult.targetValue}</p>
+                    </div>
+
+                    {/* Liste des résultats par joueur */}
+                    <div className="space-y-1">
+                      {lastResult.guesses.map((guess) => {
+                        const player = currentRoom.players.find(p => p.id === guess.playerId);
+                        return (
+                          <div key={guess.playerId} className={`p-2 rounded-lg border-2 ${getZoneColor(guess.zone)}`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-semibold">{player?.name || 'Inconnu'}</p>
+                                <p className="text-xs text-gray-600">
+                                  Réponse: <strong>{guess.guessValue}</strong> • Distance: <strong>{guess.distance}</strong>
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-2xl font-bold">{guess.points} pts</p>
+                                <p className="text-xs uppercase font-semibold">{guess.zone}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Bouton suivant (hôte uniquement) */}
                 {currentPlayer?.isHost && (
