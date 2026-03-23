@@ -134,7 +134,7 @@ function Dial({
       {/* Cadran */}
       <div
         ref={dialRef}
-        className={`relative w-96 h-48 ${disabled ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+        className={`relative w-80 h-40 ${disabled ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
       >
@@ -339,7 +339,7 @@ function Dial({
           className="absolute bottom-0 left-1/2 origin-bottom transition-transform duration-150"
           style={{
             width: '6px',
-            height: '150px',
+            height: '125px',
             background: disabled
               ? 'linear-gradient(to top, #6b7280, #9ca3af)'
               : 'linear-gradient(to top, #6b7280, #d1d5db)',
@@ -350,7 +350,7 @@ function Dial({
           }}
         >
           {/* Poignée de l'aiguille */}
-          <div className={`absolute -top-8 left-1/2 -translate-x-1/2 w-16 h-16 ${
+          <div className={`absolute -top-8 left-1/2 -translate-x-1/2 w-12 h-12 ${
             disabled ? 'bg-gray-400' : 'bg-white border-4 border-gray-400'
           } rounded-full flex items-center justify-center shadow-xl ${
             !disabled && 'hover:scale-110 transition-transform cursor-grab active:cursor-grabbing'

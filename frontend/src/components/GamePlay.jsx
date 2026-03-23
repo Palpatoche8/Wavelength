@@ -489,6 +489,15 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 </>
               )}
             </div>
+             {/* Indice affiché */}
+            {game?.clue && (
+              <div className="bg-blue-100 border-2 border-blue-400 rounded-lg p-3 mb-3">
+                <h3 className="text-sm font-semibold text-blue-800 mb-1">
+                   Indice de {psychicPlayer?.name}
+                </h3>
+                <p className="text-lg font-bold text-blue-900">"{game.clue}"</p>
+              </div>
+            )}
           </div>
 
           {/* Colonne centrale - Jeu */}
@@ -557,19 +566,9 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
               </div>
             )}
 
-            {/* Indice affiché */}
-            {game?.clue && (
-              <div className="bg-blue-100 border-2 border-blue-400 rounded-lg p-3 mb-3">
-                <h3 className="text-sm font-semibold text-blue-800 mb-1">
-                   Indice de {psychicPlayer?.name}
-                </h3>
-                <p className="text-lg font-bold text-blue-900">"{game.clue}"</p>
-              </div>
-            )}
-
             {/* Cadran */}
             {!showResult && (
-              <div className="bg-white rounded-lg shadow-lg p-3 mb-3">
+              <div className="bg-white rounded-lg shadow-lg p-2 mb-3">
                 <Dial
                   value={dialValue}
                   onValueChange={setDialValue}
@@ -611,8 +610,8 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
             {/* Résultat */}
             {showResult && lastResult && (
-              <div className="bg-white rounded-lg shadow-lg p-3 mb-3">
-                <h3 className="text-lg font-bold text-center mb-3">
+              <div className="bg-white rounded-lg shadow-lg p-2 mb-2">
+                <h3 className="text-base font-bold text-center mb-2">
                    Résultat du tour
                 </h3>
 
@@ -626,31 +625,31 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 />
 
                 {/* Affichage des valeurs - 2 encadrés côte à côte */}
-                <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="grid grid-cols-2 gap-2 mt-2">
                   {/* Valeur sélectionnée */}
-                  <div className="bg-white rounded-lg shadow-md border-2 border-gray-300 p-3 text-center">
-                    <p className="text-xs text-gray-600 mb-1 font-medium">Valeur sélectionnée</p>
-                    <p className="text-4xl font-bold text-gray-800">{lastResult.guessValue}</p>
+                  <div className="bg-white rounded-lg shadow-md border-2 border-gray-300 p-2 text-center">
+                    <p className="text-xs text-gray-600 mb-0.5 font-medium">Valeur sélectionnée</p>
+                    <p className="text-3xl font-bold text-gray-800">{lastResult.guessValue}</p>
                   </div>
 
                   {/* Cible */}
-                  <div className="bg-white rounded-lg shadow-md border-2 border-red-300 p-3 text-center">
-                    <p className="text-xs text-red-600 mb-1 font-medium"> Cible</p>
-                    <p className="text-4xl font-bold text-red-600">{lastResult.targetValue}</p>
+                  <div className="bg-white rounded-lg shadow-md border-2 border-red-300 p-2 text-center">
+                    <p className="text-xs text-red-600 mb-0.5 font-medium"> Cible</p>
+                    <p className="text-3xl font-bold text-red-600">{lastResult.targetValue}</p>
                   </div>
                 </div>
 
                 {/* Score - Grand encadré */}
-                <div className={`mt-2 p-4 rounded-lg border-4 ${getZoneColor(lastResult.zone)}`}>
+                <div className={`mt-2 p-2 rounded-lg border-2 ${getZoneColor(lastResult.zone)}`}>
                   <div className="text-center">
-                    <p className="text-xs font-semibold mb-2 uppercase tracking-wide">Score obtenu</p>
-                    <p className="text-5xl font-bold mb-2">
+                    <p className="text-xs font-semibold mb-1 uppercase tracking-wide">Score obtenu</p>
+                    <p className="text-3xl font-bold mb-0.5">
                       {lastResult.points} pts
                     </p>
-                    <p className="text-lg font-semibold mb-1">
+                    <p className="text-base font-semibold mb-0.5">
                       {getDistanceMessage(lastResult.distance)}
                     </p>
-                    <p className="text-sm opacity-75">
+                    <p className="text-xs opacity-75">
                       Distance: <strong>{lastResult.distance}</strong>
                       {' '}•{' '}
                       Zone: <strong className="uppercase">{lastResult.zone}</strong>

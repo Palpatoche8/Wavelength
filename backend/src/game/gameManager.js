@@ -329,6 +329,7 @@ class GameManager {
     const clampedValue = Math.max(1, Math.min(20, Math.round(value)));
 
     room.game.guessValue = clampedValue;
+    room.game.guessingPlayerId = playerId; // Stocker qui a joué
     room.gameState = 'revealing';
 
     console.log(`🎯 Réponse soumise dans ${roomCode}: ${clampedValue}`);
@@ -414,23 +415,31 @@ class GameManager {
       const currentTeam = room.game.currentTeam;
       room.teams[currentTeam].score += result.points;
       console.log(`   Équipe ${currentTeam} gagne ${result.points} points`);
-    } 
-    else {
-      console.log(`  MARCHE STP`);
+    } else {
+      // Mode chacun pour soi
       const guessingPlayerId = room.game.guessingPlayerId;
       const psychicId = room.game.psychicId;
       const totalPlayers = room.players.length;
-      console.log(`  guessingPlayerId: ${guessingPlayerId}, psychicId: ${psychicId}, totalPlayers: ${totalPlayers}`);
-      room.players.forEach(player => {
-         if (player.id === guessingPlayerId) {
+
+      if (!guessingPlayerId) {
+        console.log(`   Timeout : aucun joueur n'a soumis de réponse, aucun point distribué`);
+      } else {
+        room.players.forEach(player => {
+          // Le joueur qui a deviné gagne toujours les points
+          if (player.id === guessingPlayerId) {
             player.score += result.points;
             console.log(`   ${player.name} gagne ${result.points} points`);
           }
+          // Le maître gagne des points SEULEMENT si la partie a 3+ joueurs
+          // (en 1v1, seul le joueur gagne pour éviter l'égalité)
           else if (player.id === psychicId && totalPlayers > 2) {
+            // Pour l'instant : même score que le joueur
+            // Si plus tard plusieurs joueurs jouent : moyenne arrondie au supérieur avec Math.ceil()
             player.score += result.points;
             console.log(`   ${player.name} (Maître) gagne ${result.points} points`);
-         }
-      });
+          }
+        });
+      }
     }
 
     room.gameState = 'scoring';
@@ -513,6 +522,7 @@ class GameManager {
 
     // Réinitialiser l'état du tour
     game.guessValue = null;
+    game.guessingPlayerId = null;
     game.clue = null;
     game.lastResult = null;
     game.timerExpired = false;
@@ -631,6 +641,7 @@ class GameManager {
     if (room.gameState === 'playing' && room.game.clue && !room.game.guessValue) {
       console.log(`   → Soumission automatique de la valeur par défaut (10)`);
       room.game.guessValue = 10;
+      room.game.guessingPlayerId = null; // Pas de joueur spécifique (timeout)
       room.gameState = 'revealing';
     }
   }
