@@ -1,0 +1,39 @@
+services:
+  # Backend Node.js + Socket.IO
+  - type: web
+    name: wavelength-backend
+    env: node
+    region: frankfurt # Proche de la France
+    plan: free
+    buildCommand: npm install && npm install --prefix backend
+    startCommand: npm run start:backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: wavelength-frontend
+          property: host
+    healthCheckPath: /health
+
+  # Frontend React (Static Site)
+  - type: web
+    name: wavelength-frontend
+    env: static
+    region: frankfurt
+    plan: free
+    buildCommand: npm install && npm run build:frontend
+    staticPublishPath: ./frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_BACKEND_URL
+        fromService:
+          type: web
+          name: wavelength-backend
+          property: host

@@ -15,9 +15,25 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
-// Configuration CORS
+// Configuration CORS - Accepter plusieurs origines
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Autoriser les requêtes sans origin (Postman, mobile, etc.)
+    if (!origin) return callback(null, true);
+
+    // Autoriser si l'origin est dans la liste OU si elle se termine par .onrender.com
+    if (allowedOrigins.includes(origin) || origin.endsWith('.onrender.com')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 };
 
