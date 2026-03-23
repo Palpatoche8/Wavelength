@@ -4,7 +4,7 @@ services:
     name: wavelength-backend
     env: node
     region: frankfurt # Proche de la France
-    plan: free
+    plan: starter
     buildCommand: npm install && npm install --prefix backend
     startCommand: npm run start:backend
     envVars:
@@ -18,7 +18,7 @@ services:
   - type: web
     name: wavelength-frontend
     env: static
-    plan: free
+    plan: starter
     buildCommand: npm install && npm run build:frontend
     staticPublishPath: ./frontend/dist
     routes:
