@@ -2,6 +2,7 @@ services:
   # Backend Node.js + Socket.IO
   - type: web
     name: wavelength-backend
+    plan: starter 
     env: node
     region: frankfurt # Proche de la France
     buildCommand: npm install && npm install --prefix backend
