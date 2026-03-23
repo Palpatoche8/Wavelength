@@ -4,8 +4,8 @@ import HomePage from './components/HomePage';
 import GameRoom from './components/GameRoom';
 import GamePlay from './components/GamePlay';
 
-// URL du serveur backend
-const SOCKET_URL = 'http://localhost:3000';
+// URL du serveur backend - utilise VITE_BACKEND_URL en production ou localhost en dev
+const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 function App() {
   const [socket, setSocket] = useState(null);
