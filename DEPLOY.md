@@ -70,19 +70,28 @@ Assure-toi que ces fichiers existent (déjà créés) :
 
 ## 🔧 Étape 3 : Configurer les variables d'environnement
 
-### 3.1 Backend (déjà configuré automatiquement)
+Une fois les 2 services créés, tu dois les connecter entre eux :
 
-Render configure automatiquement :
-- `PORT=10000`
-- `NODE_ENV=production`
-- `FRONTEND_URL` → URL du frontend (auto-détecté)
+### 3.1 Configurer le Backend
 
-### 3.2 Frontend (déjà configuré automatiquement)
+1. Va dans **wavelength-backend** > **Environment**
+2. Copie l'URL du service (ex: `https://wavelength-backend-xxx.onrender.com`)
+3. Va dans **wavelength-frontend** > **Environment**
+4. Ajoute une nouvelle variable :
+   - **Clé** : `VITE_BACKEND_URL`
+   - **Valeur** : L'URL du backend (ex: `https://wavelength-backend-xxx.onrender.com`)
+5. Clique **Save Changes**
 
-Render configure automatiquement :
-- `VITE_BACKEND_URL` → URL du backend (auto-détecté)
+### 3.2 Configurer le Frontend pour CORS
 
-> **Note** : Le fichier `render.yaml` configure tout automatiquement ! 🎉
+1. Va dans **wavelength-frontend** > copie l'URL (ex: `https://wavelength-frontend-xxx.onrender.com`)
+2. Va dans **wavelength-backend** > **Environment**
+3. Ajoute une nouvelle variable :
+   - **Clé** : `FRONTEND_URL`
+   - **Valeur** : L'URL du frontend (ex: `https://wavelength-frontend-xxx.onrender.com`)
+4. Clique **Save Changes**
+
+> **Note** : Les 2 services vont redémarrer automatiquement après avoir ajouté les variables.
 
 ---
 
