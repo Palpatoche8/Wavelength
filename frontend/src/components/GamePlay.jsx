@@ -155,12 +155,14 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   useEffect(() => {
     if (gameState === 'scoring' && showResult) {
       const timer = setTimeout(() => {
-        handleNextRound();
+        socket.emit('next-round', {
+          roomCode: currentRoom.code
+        });
       }, 6000); // 6 secondes
 
       return () => clearTimeout(timer);
     }
-  }, [gameState, showResult]);
+  }, [gameState, showResult, socket, currentRoom?.code]);
 
   // Rejouer - Redémarrer directement une nouvelle partie
   const handleResetGame = () => {
