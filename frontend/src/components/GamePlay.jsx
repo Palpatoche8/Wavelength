@@ -153,7 +153,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
   // Auto-progression après 6 secondes en mode scoring
   useEffect(() => {
-    if (gameState === 'scoring' && showResult) {
+    if (currentRoom?.gameState === 'scoring' && showResult) {
       const timer = setTimeout(() => {
         socket.emit('next-round', {
           roomCode: currentRoom.code
@@ -162,7 +162,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
       return () => clearTimeout(timer);
     }
-  }, [gameState, showResult, socket, currentRoom?.code]);
+  }, [currentRoom?.gameState, showResult, socket, currentRoom?.code]);
 
   // Rejouer - Redémarrer directement une nouvelle partie
   const handleResetGame = () => {
@@ -499,7 +499,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                               )}
                             </div>
                             {/* Pastille verte si le joueur a répondu */}
-                            {hasAnswered && player.id !== game?.psychicId && gameState === 'playing' && (
+                            {hasAnswered && player.id !== game?.psychicId && currentRoom?.gameState === 'playing' && (
                               <span className="inline-block w-3 h-3 bg-green-500 rounded-full" title="A répondu"></span>
                             )}
                           </div>
