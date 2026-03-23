@@ -61,10 +61,13 @@ class GameManager {
       settings: {
         // Paramètres par défaut
         timerEnabled: false,
-        timerDuration: null, // null, 30, 60, 90
+        psychicTimerDuration: 60, // Timer pour le maître (en secondes)
+        playersTimerDuration: 60, // Timer pour les joueurs (en secondes)
+        timerDuration: null, // DEPRECATED - garde pour compatibilité
         totalRounds: null, // null (= 2 * nb joueurs), 5, 10, 15
         difficulty: 'normal', // easy, normal, hard
         gameMode: 'ffa', // 'ffa' (chacun pour soi) ou 'teams' (par équipe)
+        autoProgressRounds: true, // Progression automatique des tours après 6 secondes
         soundEnabled: true,
         animationsEnabled: true,
         customCardsEnabled: false,
@@ -92,6 +95,12 @@ class GameManager {
 
     if (!room) {
       console.log(`❌ Room ${roomCode} introuvable`);
+      return null;
+    }
+
+    // Bloquer le join si la partie est déjà en cours
+    if (room.gameState !== 'waiting') {
+      console.log(`❌ ${playerName} ne peut pas rejoindre ${roomCode} : partie en cours`);
       return null;
     }
 
@@ -248,7 +257,7 @@ class GameManager {
       psychicId: room.players[randomPsychicIndex].id,
       currentRound: 0,
       totalRounds: totalRounds,
-      guessValue: null, // Réponse des joueurs (1-20)
+      guesses: [], // Tableau des réponses: [{playerId, guessValue}, ...]
       clue: null, // Indice donné par le psychique
       startedAt: new Date(),
       // NEW: Timer fields
@@ -265,9 +274,9 @@ class GameManager {
     console.log(`   Psychique: ${room.players[room.game.psychicIndex].name}`);
     console.log(`   Paramètres: timer=${room.settings.timerEnabled}, difficulté=${room.settings.difficulty}, tours=${totalRounds}`);
 
-    // Démarrer le timer du premier round si activé
-    if (room.settings.timerEnabled && room.settings.timerDuration) {
-      this.startRoundTimer(roomCode);
+    // Démarrer le timer du psychique pour le premier round si activé
+    if (room.settings.timerEnabled) {
+      this.startRoundTimer(roomCode, 'psychic');
     }
 
     return room;
@@ -295,6 +304,12 @@ class GameManager {
     room.game.clue = clue;
     console.log(`💡 Indice donné dans ${roomCode}: "${clue}"`);
 
+    // Arrêter le timer du psychique et démarrer celui des joueurs
+    if (room.settings.timerEnabled) {
+      timerManager.stopTimer(roomCode);
+      this.startRoundTimer(roomCode, 'players');
+    }
+
     return room;
   }
 
@@ -316,6 +331,12 @@ class GameManager {
       return null;
     }
 
+    // Vérifier que ce n'est pas le psychique qui soumet
+    if (playerId === room.game.psychicId) {
+      console.log(`❌ Le psychique ne peut pas soumettre de réponse`);
+      return null;
+    }
+
     // En mode teams, vérifier que le joueur fait partie de l'équipe qui joue
     if (room.settings.gameMode === 'teams') {
       const player = room.players.find(p => p.id === playerId);
@@ -328,11 +349,33 @@ class GameManager {
     // Valider que la valeur est entre 1 et 20
     const clampedValue = Math.max(1, Math.min(20, Math.round(value)));
 
-    room.game.guessValue = clampedValue;
-    room.game.guessingPlayerId = playerId; // Stocker qui a joué
-    room.gameState = 'revealing';
+    // Vérifier si le joueur a déjà répondu
+    const existingGuessIndex = room.game.guesses.findIndex(g => g.playerId === playerId);
+    if (existingGuessIndex >= 0) {
+      // Mettre à jour la réponse existante
+      room.game.guesses[existingGuessIndex].guessValue = clampedValue;
+      console.log(`🎯 Réponse mise à jour dans ${roomCode}: ${clampedValue} par ${playerId}`);
+    } else {
+      // Ajouter nouvelle réponse
+      room.game.guesses.push({ playerId, guessValue: clampedValue });
+      console.log(`🎯 Réponse soumise dans ${roomCode}: ${clampedValue} par ${playerId}`);
+    }
 
-    console.log(`🎯 Réponse soumise dans ${roomCode}: ${clampedValue}`);
+    // En mode "chacun pour soi", vérifier si tous les joueurs non-psychiques ont répondu
+    if (room.settings.gameMode !== 'teams') {
+      const nonPsychicPlayers = room.players.filter(p => p.id !== room.game.psychicId);
+      const allAnswered = nonPsychicPlayers.every(p =>
+        room.game.guesses.some(g => g.playerId === p.id)
+      );
+
+      if (allAnswered) {
+        room.gameState = 'revealing';
+        console.log(`✅ Tous les joueurs ont répondu, révélation !`);
+      }
+    } else {
+      // En mode teams, un seul joueur répond par tour (comportement actuel)
+      room.gameState = 'revealing';
+    }
 
     return room;
   }
@@ -405,58 +448,100 @@ class GameManager {
     // Arrêter le timer du round en cours
     timerManager.stopTimer(roomCode);
 
-    const { targetValue, guessValue } = room.game;
+    const { targetValue, guesses } = room.game;
     const difficulty = room.settings?.difficulty || 'normal';
-    const result = this.calculateScore(targetValue, guessValue, difficulty);
 
     // Gestion des points selon le mode de jeu
     if (room.settings.gameMode === 'teams') {
-      // Mode par équipe : l'équipe qui joue gagne les points
+      // Mode par équipe : un seul joueur répond par tour
+      const teamGuess = guesses[0];
+      if (!teamGuess) {
+        console.log(`   Timeout : aucune réponse soumise`);
+        room.gameState = 'scoring';
+        room.game.lastResult = { points: 0, zone: 'white', distance: 0, guesses: [] };
+        return { room, result: { points: 0, zone: 'white', distance: 0, targetValue, guesses: [] } };
+      }
+
+      const result = this.calculateScore(targetValue, teamGuess.guessValue, difficulty);
       const currentTeam = room.game.currentTeam;
       room.teams[currentTeam].score += result.points;
+
+      console.log(`📊 Résultat dans ${roomCode} (Teams):`);
       console.log(`   Équipe ${currentTeam} gagne ${result.points} points`);
+
+      room.gameState = 'scoring';
+      room.game.lastResult = {
+        ...result,
+        targetValue,
+        guesses: [{ ...teamGuess, ...result }]
+      };
+
+      return {
+        room,
+        result: { ...result, targetValue, guesses: [{ ...teamGuess, ...result }] }
+      };
     } else {
-      // Mode chacun pour soi
-      const guessingPlayerId = room.game.guessingPlayerId;
+      // Mode chacun pour soi : chaque joueur a sa propre réponse
       const psychicId = room.game.psychicId;
       const totalPlayers = room.players.length;
 
-      if (!guessingPlayerId) {
+      if (guesses.length === 0) {
         console.log(`   Timeout : aucun joueur n'a soumis de réponse, aucun point distribué`);
-      } else {
-        room.players.forEach(player => {
-          // Le joueur qui a deviné gagne toujours les points
-          if (player.id === guessingPlayerId) {
-            player.score += result.points;
-            console.log(`   ${player.name} gagne ${result.points} points`);
-          }
-          // Le maître gagne des points SEULEMENT si la partie a 3+ joueurs
-          // (en 1v1, seul le joueur gagne pour éviter l'égalité)
-          else if (player.id === psychicId && totalPlayers > 2) {
-            // Pour l'instant : même score que le joueur
-            // Si plus tard plusieurs joueurs jouent : moyenne arrondie au supérieur avec Math.ceil()
-            player.score += result.points;
-            console.log(`   ${player.name} (Maître) gagne ${result.points} points`);
-          }
-        });
+        room.gameState = 'scoring';
+        room.game.lastResult = { points: 0, zone: 'white', distance: 0, targetValue, guesses: [] };
+        return { room, result: { points: 0, zone: 'white', distance: 0, targetValue, guesses: [] } };
       }
-    }
 
-    room.gameState = 'scoring';
-    room.game.lastResult = result;
+      // Calculer les résultats pour chaque joueur
+      const results = guesses.map(guess => {
+        const playerResult = this.calculateScore(targetValue, guess.guessValue, difficulty);
+        return {
+          ...guess,
+          ...playerResult
+        };
+      });
 
-    console.log(`📊 Résultat dans ${roomCode}:`);
-    console.log(`   Cible: ${targetValue}, Réponse: ${guessValue}`);
-    console.log(`   Distance: ${result.distance}, Zone: ${result.zone}, Points: ${result.points} (${difficulty})`);
+      console.log(`📊 Résultat dans ${roomCode} (Chacun pour soi):`);
+      console.log(`   Cible: ${targetValue}`);
 
-    return {
-      room,
-      result: {
-        ...result,
+      // Distribuer les points à chaque joueur
+      let totalPointsForPsychic = 0;
+      let playersCount = 0;
+
+      results.forEach(result => {
+        const player = room.players.find(p => p.id === result.playerId);
+        if (player) {
+          player.score += result.points;
+          totalPointsForPsychic += result.points;
+          playersCount++;
+          console.log(`   ${player.name}: ${result.guessValue} → ${result.points} pts (distance: ${result.distance})`);
+        }
+      });
+
+      // Le maître gagne la moyenne arrondie au supérieur
+      if (playersCount > 0 && totalPlayers > 2) {
+        const psychicPoints = Math.ceil(totalPointsForPsychic / playersCount);
+        const psychic = room.players.find(p => p.id === psychicId);
+        if (psychic) {
+          psychic.score += psychicPoints;
+          console.log(`   ${psychic.name} (Maître) gagne ${psychicPoints} pts (moyenne)`);
+        }
+      }
+
+      room.gameState = 'scoring';
+      room.game.lastResult = {
         targetValue,
-        guessValue
-      }
-    };
+        guesses: results
+      };
+
+      return {
+        room,
+        result: {
+          targetValue,
+          guesses: results
+        }
+      };
+    }
   }
 
   /**
@@ -521,8 +606,7 @@ class GameManager {
     game.targetValue = generateTargetValue();
 
     // Réinitialiser l'état du tour
-    game.guessValue = null;
-    game.guessingPlayerId = null;
+    game.guesses = [];
     game.clue = null;
     game.lastResult = null;
     game.timerExpired = false;
@@ -534,9 +618,9 @@ class GameManager {
     console.log(`   Psychique: ${room.players[game.psychicIndex].name}`);
     console.log(`   Carte: ${game.currentCard.left} ↔ ${game.currentCard.right}`);
 
-    // Démarrer le timer du nouveau round si activé
-    if (room.settings.timerEnabled && room.settings.timerDuration) {
-      this.startRoundTimer(roomCode);
+    // Démarrer le timer du psychique pour le nouveau round si activé
+    if (room.settings.timerEnabled) {
+      this.startRoundTimer(roomCode, 'psychic');
     }
 
     return room;
@@ -595,19 +679,30 @@ class GameManager {
   /**
    * Démarre le timer pour un round
    * @param {string} roomCode - Code de la room
+   * @param {string} timerType - Type de timer : 'psychic' ou 'players'
    * @param {Function} onTick - Callback optionnel appelé chaque seconde
    * @param {Function} onExpireCallback - Callback optionnel appelé en plus de handleTimerExpire
    */
-  startRoundTimer(roomCode, onTick = null, onExpireCallback = null) {
+  startRoundTimer(roomCode, timerType = 'psychic', onTick = null, onExpireCallback = null) {
     const room = this.rooms.get(roomCode);
 
-    if (!room || !room.game || !room.settings.timerEnabled || !room.settings.timerDuration) {
+    if (!room || !room.game || !room.settings.timerEnabled) {
       return;
     }
 
-    const duration = room.settings.timerDuration;
+    // Déterminer la durée selon le type de timer
+    let duration;
+    if (timerType === 'psychic') {
+      duration = room.settings.psychicTimerDuration || room.settings.timerDuration || 60;
+    } else {
+      duration = room.settings.playersTimerDuration || room.settings.timerDuration || 60;
+    }
+
+    if (!duration) return;
+
     room.game.roundStartTime = new Date();
     room.game.timerExpired = false;
+    room.game.currentTimerType = timerType; // Stocker le type de timer actif
 
     // Callback d'expiration : forcer la soumission ou passer au round suivant
     const onExpire = () => {
@@ -619,6 +714,7 @@ class GameManager {
       }
     };
 
+    console.log(`⏱️ Démarrage timer ${timerType} pour ${roomCode}: ${duration}s`);
     timerManager.startTimer(roomCode, duration, onExpire, onTick);
   }
 
@@ -637,12 +733,17 @@ class GameManager {
 
     room.game.timerExpired = true;
 
-    // Si on est en attente de guess, forcer une valeur par défaut (milieu = 10)
-    if (room.gameState === 'playing' && room.game.clue && !room.game.guessValue) {
-      console.log(`   → Soumission automatique de la valeur par défaut (10)`);
-      room.game.guessValue = 10;
-      room.game.guessingPlayerId = null; // Pas de joueur spécifique (timeout)
+    // Si on est en attente de réponses, passer à la révélation
+    // Les joueurs qui n'ont pas répondu n'auront pas de points
+    if (room.gameState === 'playing' && room.game.clue) {
+      console.log(`   → Révélation automatique (timeout)`);
       room.gameState = 'revealing';
+    }
+    // Si le maître n'a pas encore donné d'indice, passer directement au prochain tour
+    else if (room.gameState === 'playing' && !room.game.clue) {
+      console.log(`   → Pas d'indice donné, passage au prochain tour`);
+      // On passe directement au prochain tour
+      this.nextRound(roomCode);
     }
   }
 
