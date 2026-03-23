@@ -18,7 +18,7 @@ services:
   - type: web
     name: wavelength-frontend
     env: static
-    buildCommand: npm install && npm run build:frontend
+    buildCommand: npm install && npm install --prefix frontend && npm run build:frontend
     staticPublishPath: ./frontend/dist
     routes:
       - type: rewrite
