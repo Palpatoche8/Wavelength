@@ -19,8 +19,11 @@ services:
     name: wavelength-frontend
     env: static
     plan: free
-    buildCommand: npm install && npm run build:frontend
+    buildCommand: npm install && npm install --prefix frontend && npm run build:frontend
     staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: https://wavelength-backend-g4yq.onrender.com
     routes:
       - type: rewrite
         source: /*
