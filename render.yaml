@@ -20,6 +20,9 @@ services:
     env: static
     buildCommand: npm install && npm install --prefix frontend && npm run build:frontend
     staticPublishPath: ./frontend/dist
+    envVars: 
+    - key: VITE_BACKEND_URL
+      value: https://wavelength-frontend-wj8u.onrender.com
     routes:
       - type: rewrite
         source: /*
