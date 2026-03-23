@@ -19,7 +19,9 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   const [lastResult, setLastResult] = useState(null);
   const [triggerConfetti, setTriggerConfetti] = useState(0); // Counter pour trigger confetti
   const [countdown, setCountdown] = useState(null); // Compte à rebours pour progression auto
+  const [hasSubmitted, setHasSubmitted] = useState(false); // Le joueur a-t-il déjà soumis sa réponse ?
   const progressingRef = useRef(false); // Guard pour éviter double progression
+  const timeoutRef = useRef(null); // Ref pour le timeout de progression auto
 
   const game = currentRoom?.game;
   const currentPlayer = currentRoom?.players.find(p => p.name === playerName);
@@ -59,6 +61,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       setLastResult(null);
       setDialValue(10);
       setClueText('');
+      setHasSubmitted(false);
     });
 
     // Cible révélée (uniquement pour le psychique)
@@ -100,6 +103,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       setDialValue(10);
       setClueText('');
       setTargetValue(null);
+      setHasSubmitted(false); // Reset pour le nouveau tour
       progressingRef.current = false; // Reset guard pour le prochain tour
     });
 
@@ -149,6 +153,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       roomCode: currentRoom.code,
       value: dialValue
     });
+    setHasSubmitted(true); // Marquer comme soumis
   };
 
   // Passer au tour suivant
@@ -163,8 +168,10 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
     const autoProgress = currentRoom?.settings?.autoProgressRounds !== false;
 
     if (currentRoom?.gameState === 'scoring' && showResult && autoProgress) {
-      // Reset guard
-      progressingRef.current = false;
+      // Si un timeout est déjà en cours, ne pas en créer un nouveau
+      if (timeoutRef.current) {
+        return;
+      }
 
       // Compte à rebours de 6 secondes
       setCountdown(6);
@@ -187,12 +194,18 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
             roomCode: currentRoom.code
           });
         }
+        timeoutRef.current = null; // Clear la ref après l'appel
       }, 6000); // 6 secondes
+
+      timeoutRef.current = timer; // Stocker le timeout
 
       return () => {
         clearTimeout(timer);
         clearInterval(countdownInterval);
         setCountdown(null);
+        if (timeoutRef.current === timer) {
+          timeoutRef.current = null;
+        }
       };
     } else {
       setCountdown(null);
@@ -638,12 +651,20 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                 {/* Bouton de validation (joueurs qui peuvent jouer, après l'indice) */}
                 {canPlay && game?.clue && (
                   <div className="mt-3 text-center">
-                    <button
-                      onClick={handleSubmitGuess}
-                      className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold text-base hover:from-green-600 hover:to-emerald-700 transition shadow-lg"
-                    >
-                      ✓ Valider : {dialValue}
-                    </button>
+                    {!hasSubmitted ? (
+                      <button
+                        onClick={handleSubmitGuess}
+                        className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold text-base hover:from-green-600 hover:to-emerald-700 transition shadow-lg"
+                      >
+                        ✓ Valider : {dialValue}
+                      </button>
+                    ) : (
+                      <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-3">
+                        <p className="text-blue-800 text-sm font-semibold">
+                          ⏳ En attente des autres joueurs...
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
