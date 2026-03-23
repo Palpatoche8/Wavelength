@@ -233,28 +233,82 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                             handleUpdateSettings({
                               ...currentRoom.settings,
                               timerEnabled: e.target.checked,
-                              timerDuration: e.target.checked && !currentRoom.settings.timerDuration ? 60 : currentRoom.settings.timerDuration
+                              psychicTimerDuration: e.target.checked ? (currentRoom.settings.psychicTimerDuration || 60) : 60,
+                              playersTimerDuration: e.target.checked ? (currentRoom.settings.playersTimerDuration || 60) : 60
                             });
                           }}
                           className="w-5 h-5 text-indigo-600 rounded"
                         />
                       </label>
                       {currentRoom.settings.timerEnabled && (
-                        <select
-                          value={currentRoom.settings.timerDuration || 60}
+                        <div className="space-y-3 mt-2">
+                          {/* Timer du maître */}
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              🧙 Timer Maître (donner l'indice)
+                            </label>
+                            <select
+                              value={currentRoom.settings.psychicTimerDuration || 60}
+                              onChange={(e) => {
+                                handleUpdateSettings({
+                                  ...currentRoom.settings,
+                                  psychicTimerDuration: parseInt(e.target.value)
+                                });
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                            >
+                              <option value={30}>30 secondes</option>
+                              <option value={60}>60 secondes</option>
+                              <option value={90}>90 secondes</option>
+                              <option value={120}>2 minutes</option>
+                            </select>
+                          </div>
+                          {/* Timer des joueurs */}
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              🎮 Timer Joueurs (deviner)
+                            </label>
+                            <select
+                              value={currentRoom.settings.playersTimerDuration || 60}
+                              onChange={(e) => {
+                                handleUpdateSettings({
+                                  ...currentRoom.settings,
+                                  playersTimerDuration: parseInt(e.target.value)
+                                });
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                            >
+                              <option value={30}>30 secondes</option>
+                              <option value={60}>60 secondes</option>
+                              <option value={90}>90 secondes</option>
+                              <option value={120}>2 minutes</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Progression automatique */}
+                    <div>
+                      <label className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-gray-700">⏭️ Progression auto des tours</span>
+                        <input
+                          type="checkbox"
+                          checked={currentRoom.settings.autoProgressRounds !== false}
                           onChange={(e) => {
                             handleUpdateSettings({
                               ...currentRoom.settings,
-                              timerDuration: parseInt(e.target.value)
+                              autoProgressRounds: e.target.checked
                             });
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        >
-                          <option value={30}>30 secondes</option>
-                          <option value={60}>60 secondes</option>
-                          <option value={90}>90 secondes</option>
-                        </select>
-                      )}
+                          className="w-5 h-5 text-indigo-600 rounded"
+                        />
+                      </label>
+                      <p className="text-xs text-gray-600">
+                        {currentRoom.settings.autoProgressRounds !== false
+                          ? '✓ Les tours passent automatiquement après 6 secondes'
+                          : "⚠️ L'hôte devra cliquer pour passer au tour suivant"}
+                      </p>
                     </div>
 
                     {/* Nombre de tours */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Dial from './Dial';
 import Timer from './ui/Timer';
 import ProgressBar from './ui/ProgressBar';
@@ -18,6 +18,8 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const [triggerConfetti, setTriggerConfetti] = useState(0); // Counter pour trigger confetti
+  const [countdown, setCountdown] = useState(null); // Compte à rebours pour progression auto
+  const progressingRef = useRef(false); // Guard pour éviter double progression
 
   const game = currentRoom?.game;
   const currentPlayer = currentRoom?.players.find(p => p.name === playerName);
@@ -31,7 +33,11 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
   // Hook pour gérer le timer
   const timerEnabled = currentRoom?.settings?.timerEnabled && currentRoom?.gameState === 'playing';
-  const timerDuration = currentRoom?.settings?.timerDuration;
+  // Utiliser le bon timer selon si on attend l'indice (psychic) ou la réponse (joueurs)
+  const isWaitingForClue = !game?.clue;
+  const timerDuration = isWaitingForClue
+    ? currentRoom?.settings?.psychicTimerDuration
+    : currentRoom?.settings?.playersTimerDuration;
   const { remainingTime, isExpired } = useTimer(socket, timerDuration, timerEnabled);
 
   // Hook pour feedback haptique
@@ -94,6 +100,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       setDialValue(10);
       setClueText('');
       setTargetValue(null);
+      progressingRef.current = false; // Reset guard pour le prochain tour
     });
 
     // Partie terminée
@@ -151,18 +158,46 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
     });
   };
 
-  // Auto-progression après 6 secondes en mode scoring
+  // Auto-progression après 6 secondes en mode scoring (avec compte à rebours)
   useEffect(() => {
-    if (currentRoom?.gameState === 'scoring' && showResult) {
-      const timer = setTimeout(() => {
-        socket.emit('next-round', {
-          roomCode: currentRoom.code
+    const autoProgress = currentRoom?.settings?.autoProgressRounds !== false;
+
+    if (currentRoom?.gameState === 'scoring' && showResult && autoProgress) {
+      // Reset guard
+      progressingRef.current = false;
+
+      // Compte à rebours de 6 secondes
+      setCountdown(6);
+
+      const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(countdownInterval);
+            return null;
+          }
+          return prev - 1;
         });
+      }, 1000);
+
+      const timer = setTimeout(() => {
+        // Guard pour éviter double progression
+        if (!progressingRef.current) {
+          progressingRef.current = true;
+          socket.emit('next-round', {
+            roomCode: currentRoom.code
+          });
+        }
       }, 6000); // 6 secondes
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        clearInterval(countdownInterval);
+        setCountdown(null);
+      };
+    } else {
+      setCountdown(null);
     }
-  }, [currentRoom?.gameState, showResult, socket, currentRoom?.code]);
+  }, [currentRoom?.gameState, showResult, socket, currentRoom?.code, currentRoom?.settings?.autoProgressRounds]);
 
   // Rejouer - Redémarrer directement une nouvelle partie
   const handleResetGame = () => {
@@ -720,24 +755,44 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                   </div>
                 )}
 
-                {/* Bouton suivant (hôte uniquement) */}
-                {currentPlayer?.isHost && (
+                {/* Progression automatique ou bouton manuel */}
+                {currentRoom?.settings?.autoProgressRounds !== false ? (
                   <div className="mt-3 text-center">
-                    <button
-                      onClick={handleNextRound}
-                      className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold text-base hover:from-indigo-700 hover:to-purple-700 transition shadow-lg"
-                    >
-                      ▶ Tour suivant
-                    </button>
+                    {countdown !== null && (
+                      <div className="bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-indigo-300 rounded-lg p-3">
+                        <p className="text-sm text-indigo-800 mb-1">
+                          ⏭️ Prochain tour dans...
+                        </p>
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center animate-pulse">
+                            <span className="text-2xl font-bold text-white">{countdown}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                ) : (
+                  <>
+                    {/* Bouton suivant (hôte uniquement en mode manuel) */}
+                    {currentPlayer?.isHost && (
+                      <div className="mt-3 text-center">
+                        <button
+                          onClick={handleNextRound}
+                          className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold text-base hover:from-indigo-700 hover:to-purple-700 transition shadow-lg"
+                        >
+                          ▶ Tour suivant
+                        </button>
+                      </div>
+                    )}
 
-                {!currentPlayer?.isHost && (
-                  <div className="mt-3 text-center">
-                    <p className="text-gray-600 text-xs">
-                      Attendez que l'hôte passe au tour suivant...
-                    </p>
-                  </div>
+                    {!currentPlayer?.isHost && (
+                      <div className="mt-3 text-center">
+                        <p className="text-gray-600 text-xs">
+                          Attendez que l'hôte passe au tour suivant...
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

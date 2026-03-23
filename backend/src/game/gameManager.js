@@ -67,6 +67,7 @@ class GameManager {
         totalRounds: null, // null (= 2 * nb joueurs), 5, 10, 15
         difficulty: 'normal', // easy, normal, hard
         gameMode: 'ffa', // 'ffa' (chacun pour soi) ou 'teams' (par équipe)
+        autoProgressRounds: true, // Progression automatique des tours après 6 secondes
         soundEnabled: true,
         animationsEnabled: true,
         customCardsEnabled: false,
@@ -94,6 +95,12 @@ class GameManager {
 
     if (!room) {
       console.log(`❌ Room ${roomCode} introuvable`);
+      return null;
+    }
+
+    // Bloquer le join si la partie est déjà en cours
+    if (room.gameState !== 'waiting') {
+      console.log(`❌ ${playerName} ne peut pas rejoindre ${roomCode} : partie en cours`);
       return null;
     }
 

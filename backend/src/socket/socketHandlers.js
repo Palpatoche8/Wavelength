@@ -37,12 +37,32 @@ export function setupSocketHandlers(io) {
     socket.on('join-room', ({ roomCode, playerName }) => {
       console.log(`🚪 ${playerName} tente de rejoindre ${roomCode}`);
 
+      // Vérifier d'abord si la room existe
+      const existingRoom = gameManager.getRoom(roomCode);
+
+      if (!existingRoom) {
+        socket.emit('join-room-error', {
+          success: false,
+          message: `La room ${roomCode} n'existe pas`
+        });
+        return;
+      }
+
+      // Vérifier si la partie est en cours
+      if (existingRoom.gameState !== 'waiting') {
+        socket.emit('join-room-error', {
+          success: false,
+          message: `Impossible de rejoindre : partie en cours`
+        });
+        return;
+      }
+
       const room = gameManager.joinRoom(roomCode, socket.id, playerName);
 
       if (!room) {
         socket.emit('join-room-error', {
           success: false,
-          message: `La room ${roomCode} n'existe pas`
+          message: `Erreur lors du join`
         });
         return;
       }
