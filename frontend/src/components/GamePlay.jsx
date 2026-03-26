@@ -120,6 +120,13 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       setDialValue(10);
       setClueText('');
       setTargetValue(null);
+      setHasSubmitted(false);
+      setCountdown(null);
+      progressingRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     });
 
     return () => {
@@ -529,7 +536,9 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                         <div
                           key={player.id}
                           className={`flex items-center justify-between p-2 rounded-lg ${
-                            player.id === game?.psychicId
+                            player.disconnected
+                              ? 'bg-gray-100 opacity-60'
+                              : player.id === game?.psychicId
                               ? 'bg-purple-100 border-2 border-purple-400'
                               : player.name === playerName
                               ? 'bg-blue-50 border border-blue-300'
@@ -541,6 +550,9 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                               <p className="font-medium text-sm">
                                 {player.name}
                                 {player.name === playerName && ' (Vous)'}
+                                {player.disconnected && (
+                                  <span className="text-red-600 ml-1 text-xs">(Déco)</span>
+                                )}
                               </p>
                               {player.id === game?.psychicId && (
                                 <p className="text-xs text-purple-600"> Maitre</p>
