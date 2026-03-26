@@ -139,13 +139,19 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                   <div
                     key={player.id}
                     className={`flex items-center justify-between p-4 rounded-lg border-2 ${
-                      player.name === playerName
+                      player.disconnected
+                        ? 'border-gray-300 bg-gray-100 opacity-60'
+                        : player.name === playerName
                         ? 'border-primary-500 bg-primary-50'
                         : 'border-gray-200 bg-gray-50'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-indigo-500 flex items-center justify-center text-white font-bold">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                        player.disconnected
+                          ? 'bg-gray-400'
+                          : 'bg-gradient-to-br from-primary-400 to-indigo-500'
+                      }`}>
                         {player.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -153,6 +159,9 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                           {player.name}
                           {player.name === playerName && (
                             <span className="text-primary-600 ml-2">(Vous)</span>
+                          )}
+                          {player.disconnected && (
+                            <span className="text-red-600 ml-2 text-xs">(Déconnecté)</span>
                           )}
                         </p>
                         <p className="text-xs text-gray-500">

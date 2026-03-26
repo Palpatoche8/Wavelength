@@ -77,6 +77,13 @@ export function setupSocketHandlers(io) {
         room
       });
 
+      // Si la partie est en cours et que le joueur qui rejoint est le psychique, lui envoyer la cible
+      if (room.gameState === 'playing' && room.game && room.game.psychicId === socket.id) {
+        socket.emit('target-revealed', {
+          targetValue: room.game.targetValue
+        });
+      }
+
       // Informer tous les clients de la room de la mise à jour
       io.to(roomCode.toUpperCase()).emit('room-updated', room);
 
@@ -133,38 +140,6 @@ export function setupSocketHandlers(io) {
       io.to(room.game.psychicId).emit('target-revealed', {
         targetValue: room.game.targetValue
       });
-
-      // Si le timer est activé, démarrer avec callbacks tick et expire
-      if (room.settings.timerEnabled && room.settings.timerDuration) {
-        const onTick = (remainingTime) => {
-          io.to(roomCode).emit('timer-tick', {
-            remainingTime,
-            roomCode
-          });
-        };
-
-        const onExpire = (roomCode) => {
-          io.to(roomCode).emit('timer-expired', {
-            roomCode,
-            room: gameManager.getRoom(roomCode)
-          });
-        };
-
-        gameManager.startRoundTimer(roomCode, onTick, onExpire);
-      }
-      setTimeout(() => {
-      const updatedRoom = gameManager.nextRound(roomCode);
-      if (updatedRoom && updatedRoom.gameState === 'playing') {
-        io.to(roomCode).emit('round-started', {
-          success: true,
-          room: updatedRoom
-        });
-    
-      io.to(updatedRoom.game.psychicId).emit('target-revealed', {
-        targetValue: updatedRoom.game.targetValue
-       });
-      }
-      }, 100); // Petit délai pour la synchronisation
     });
 
     // Le psychique soumet un indice
@@ -320,18 +295,41 @@ export function setupSocketHandlers(io) {
     socket.on('disconnect', () => {
       console.log(`❌ Client déconnecté: ${socket.id}`);
 
-      // Retirer le joueur de toutes les rooms
+      // Marquer le joueur comme déconnecté (grace period de 30s)
       const rooms = gameManager.getAllRooms();
       rooms.forEach(room => {
         const player = room.players.find(p => p.id === socket.id);
         if (player) {
-          const updatedRoom = gameManager.leaveRoom(room.code, socket.id);
+          // Si la partie est en attente, retirer immédiatement
+          if (room.gameState === 'waiting') {
+            const updatedRoom = gameManager.leaveRoom(room.code, socket.id);
+            if (updatedRoom) {
+              io.to(room.code).emit('room-updated', updatedRoom);
+              io.to(room.code).emit('player-left', {
+                playerId: socket.id,
+                playerName: player.name
+              });
+            }
+          } else {
+            // Si la partie est en cours, marquer comme déconnecté
+            const updatedRoom = gameManager.markPlayerDisconnected(room.code, socket.id);
+            if (updatedRoom) {
+              io.to(room.code).emit('room-updated', updatedRoom);
+              io.to(room.code).emit('player-disconnected', {
+                playerId: socket.id,
+                playerName: player.name
+              });
 
-          if (updatedRoom) {
-            io.to(room.code).emit('room-updated', updatedRoom);
-            io.to(room.code).emit('player-left', {
-              playerId: socket.id
-            });
+              // Nettoyer après 30 secondes
+              setTimeout(() => {
+                const cleanedRoom = gameManager.cleanupDisconnectedPlayers(room.code);
+                if (cleanedRoom) {
+                  io.to(room.code).emit('room-updated', cleanedRoom);
+                } else {
+                  console.log(`🗑️ Room ${room.code} supprimée après nettoyage`);
+                }
+              }, 30000); // 30 secondes
+            }
           }
         }
       });
