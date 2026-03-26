@@ -48,21 +48,13 @@ export function setupSocketHandlers(io) {
         return;
       }
 
-      // Vérifier si la partie est en cours
-      if (existingRoom.gameState !== 'waiting') {
-        socket.emit('join-room-error', {
-          success: false,
-          message: `Impossible de rejoindre : partie en cours`
-        });
-        return;
-      }
-
+      // Laisser gameManager.joinRoom() gérer la logique de join (reconnexion, join en cours, etc.)
       const room = gameManager.joinRoom(roomCode, socket.id, playerName);
 
       if (!room) {
         socket.emit('join-room-error', {
           success: false,
-          message: `Erreur lors du join`
+          message: `Impossible de rejoindre (nom déjà pris ou état invalide)`
         });
         return;
       }
