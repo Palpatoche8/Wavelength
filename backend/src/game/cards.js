@@ -18,7 +18,7 @@ export const CARDS = [
   { id: 12, left: "Pire Matière Scolaire", right: "Meilleure Matière Scolaire" },
   { id: 13, left: "Pire Marque", right: "Meilleure Marque" },
   { id: 14, left: "Pire Boisson", right: "Meilleure Boisson" },
-  { id: 15, left: "Pire Métro", right: "Meilleur Métro" },
+  { id: 15, left: "Pire ligne de transport", right: "Meilleur ligne de transport" },
   { id: 16, left: "Pire Youtubeur/Streameur", right: "Meilleur Youtubeur/Streameur" },
   { id: 17, left: "Pire FastFood", right: "Meilleur FastFood" },
   { id: 18, left: "Pire Ville de France", right: "Meilleure Ville de France" },
@@ -35,6 +35,29 @@ export const CARDS = [
   { id: 29, left: "Silencieux", right: "Bruyant" },
   { id: 30, left: "Pire Idée de Date", right: "Meilleure Idée de Date" },
   { id: 31, left: "Pire Sport Aux JO", right: "Meilleur Sport aux JO" },
+  { id: 32, left: "Pire unité de mesure", right: "Meilleure unité de mesure" },
+  { id: 33, left: "Pire Célébrité", right: "Meilleure Célébrité" },
+  { id: 34, left: "Pire Apéritif", right: "Meilleure Apéritif" },
+  { id: 35, left: "Overrated skill", right: "Underrated skill" },
+  { id: 36, left: "Mauvaise habitude", right: "Bonne habitude" },
+  { id: 37, left: "Pire arme se battre", right: "Meilleure arme pour se battre" },
+  { id: 38, left: "Pire Super-Pouvoir", right: "Meilleur Super-Pouvoir" },
+  { id: 39, left: "Demande de la chance", right: "Demande du talent" },
+  { id: 40, left: "Pire petit déjeuner", right: "Meilleur petit déjeuner" },
+  { id: 41, left: "Pire émission télé", right: "Meilleur émission télé" },
+  { id: 42, left: "Pire diner en amoureux", right: "Meilleur diner en amoureux" },
+  { id: 43, left: "Inutile pour l'Apocalypse", right: "Essentiel pour l'Apocalypse" },
+  { id: 44, left: "Fait inconnu", right: "Fait extremement connu" },
+  { id: 45, left: "Mot très moche", right: "Mot très beau" },
+  { id: 46, left: "Horrible de dormir dessus", right: "Incroyable de dormir dessus" },
+  { id: 47, left: "Jamais à l'heure", right: "Toujours à l'heure" },
+  { id: 48, left: "Personnage fictif détesté", right: "Personnage fictif adoré" },
+  { id: 49, left: "Personne qui me détruirait", right: "Personne que je détruis" },
+  { id: 50, left: "Pire couleur", right: "Meilleure couleur" }
+
+
+
+
 
 ];
 
