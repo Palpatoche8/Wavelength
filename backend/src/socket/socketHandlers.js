@@ -129,17 +129,25 @@ export function setupSocketHandlers(io) {
         return;
       }
 
-      // Envoyer l'état du jeu à tous les joueurs
+      // startGame() a déjà appelé nextRound(), donc le premier round est prêt
+      // Envoyer l'événement game-started suivi de round-started
       io.to(roomCode).emit('game-started', {
         success: true,
         room
       });
 
-      // Envoyer la cible secrète uniquement au psychique
-      // Utiliser io.to() avec l'ID du socket pour cibler directement le psychique
-      io.to(room.game.psychicId).emit('target-revealed', {
-        targetValue: room.game.targetValue
-      });
+      // Si le jeu est en cours (premier round initialisé), envoyer round-started
+      if (room.gameState === 'playing' && room.game) {
+        io.to(roomCode).emit('round-started', {
+          success: true,
+          room
+        });
+
+        // Envoyer la cible secrète au psychique du premier round
+        io.to(room.game.psychicId).emit('target-revealed', {
+          targetValue: room.game.targetValue
+        });
+      }
     });
 
     // Le psychique soumet un indice
