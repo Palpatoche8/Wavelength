@@ -18,20 +18,11 @@ services:
   - type: web
     name: wavelength-frontend
     env: static
-<<<<<<< HEAD
-    buildCommand: npm install && npm install --prefix frontend && npm run build:frontend
-    staticPublishPath: ./frontend/dist
-    envVars: 
-    - key: VITE_BACKEND_URL
-      value: https://wavelength-frontend-wj8u.onrender.com
-=======
-    plan: free
     buildCommand: npm install && npm install --prefix frontend && npm run build:frontend
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_BACKEND_URL
         value: https://wavelength-backend-g4yq.onrender.com
->>>>>>> claude/wavelength-multiplayer-game-011CUdyq5jx7kM3qsLzvCAJz
     routes:
       - type: rewrite
         source: /*
