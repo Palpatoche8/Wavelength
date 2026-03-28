@@ -130,16 +130,51 @@ export function setupSocketHandlers(io) {
       }
 
       // Envoyer l'état du jeu à tous les joueurs
+      // Le client devra appeler next-round pour démarrer le premier tour
       io.to(roomCode).emit('game-started', {
         success: true,
-        room
+        room,
+        needsFirstRound: true // Signal au client qu'il doit appeler next-round
       });
 
-      // Envoyer la cible secrète uniquement au psychique
-      // Utiliser io.to() avec l'ID du socket pour cibler directement le psychique
-      io.to(room.game.psychicId).emit('target-revealed', {
-        targetValue: room.game.targetValue
-      });
+      // ⭐ TEST : Passer automatiquement au round 1
+      setTimeout(() => {
+        const updatedRoom = gameManager.nextRound(roomCode);
+        if (updatedRoom && updatedRoom.gameState === 'playing') {
+          io.to(roomCode).emit('round-started', {
+            success: true,
+            room: updatedRoom
+          });
+
+          // Envoyer la cible au psychique
+          const psychicSocket = io.sockets.sockets.get(updatedRoom.game.psychicId);
+          if (psychicSocket) {
+            psychicSocket.emit('target-revealed', {
+              targetValue: updatedRoom.game.targetValue
+            });
+            console.log(`🎯 Cible ${updatedRoom.game.targetValue} envoyée au psychique ${updatedRoom.game.psychicId}`);
+          }
+
+          // Démarrer le timer si activé
+          if (updatedRoom.settings.timerEnabled) {
+            const onTick = (remainingTime) => {
+              io.to(roomCode).emit('timer-tick', {
+                remainingTime,
+                roomCode
+              });
+            };
+
+            const onExpire = (roomCode) => {
+              io.to(roomCode).emit('timer-expired', {
+                roomCode,
+                room: gameManager.getRoom(roomCode)
+              });
+            };
+
+            gameManager.startRoundTimer(roomCode, 'psychic', onTick, onExpire);
+          }
+        }
+      }, 100); // Délai de 100ms pour la synchronisation
     });
 
     // Le psychique soumet un indice
@@ -222,9 +257,16 @@ export function setupSocketHandlers(io) {
         });
 
         // Envoyer la nouvelle cible au nouveau psychique
-        io.to(room.game.psychicId).emit('target-revealed', {
-          targetValue: room.game.targetValue
-        });
+        // ⭐ CORRECTION : Utiliser le socket directement, pas io.to()
+        const psychicSocket = io.sockets.sockets.get(room.game.psychicId);
+        if (psychicSocket) {
+          psychicSocket.emit('target-revealed', {
+            targetValue: room.game.targetValue
+          });
+          console.log(`🎯 Cible ${room.game.targetValue} envoyée au psychique ${room.game.psychicId}`);
+        } else {
+          console.warn(`⚠️ Socket psychique ${room.game.psychicId} introuvable`);
+        }
 
         // Si le timer est activé, démarrer avec callbacks tick et expire
         if (room.settings.timerEnabled && room.settings.timerDuration) {
