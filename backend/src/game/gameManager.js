@@ -49,7 +49,9 @@ class GameManager {
         isHost: true,
         joinedAt: new Date(),
         score: 0,
-        team: null // 'blue' ou 'red' en mode teams
+        team: null, // 'blue' ou 'red' en mode teams
+        disconnected: false,
+        disconnectedAt: null
       }],
       createdAt: new Date(),
       gameState: 'waiting', // waiting, playing, revealing, scoring, finished
@@ -67,7 +69,7 @@ class GameManager {
         totalRounds: null, // null (= 2 * nb joueurs), 5, 10, 15
         difficulty: 'normal', // easy, normal, hard
         gameMode: 'ffa', // 'ffa' (chacun pour soi) ou 'teams' (par équipe)
-        autoProgressRounds: true, // Progression automatique des tours après 6 secondes
+        autoProgressRounds: false, // Progression automatique des tours après 6 secondes
         soundEnabled: true,
         animationsEnabled: true,
         customCardsEnabled: false,
@@ -98,17 +100,43 @@ class GameManager {
       return null;
     }
 
-    // Bloquer le join si la partie est déjà en cours
-    if (room.gameState !== 'waiting') {
-      console.log(`❌ ${playerName} ne peut pas rejoindre ${roomCode} : partie en cours`);
-      return null;
+    // Vérifier si c'est une reconnexion (même nom, joueur déconnecté)
+    const disconnectedPlayer = room.players.find(
+      p => p.name === playerName && p.disconnected
+    );
+
+    if (disconnectedPlayer) {
+      // Reconnexion : mettre à jour l'ID du socket et enlever le flag déconnecté
+      console.log(`🔄 Reconnexion de ${playerName} dans ${roomCode}`);
+      disconnectedPlayer.id = playerId;
+      disconnectedPlayer.disconnected = false;
+      disconnectedPlayer.disconnectedAt = null;
+      return room;
     }
 
-    // Vérifie si le joueur n'est pas déjà dans la room
+    // Vérifie si le joueur n'est pas déjà dans la room (même ID)
     const existingPlayer = room.players.find(p => p.id === playerId);
     if (existingPlayer) {
       console.log(`⚠️ Joueur ${playerName} déjà dans la room ${roomCode}`);
       return room;
+    }
+
+    // Vérifier si un joueur avec le même nom existe déjà (et n'est pas déconnecté)
+    const sameNamePlayer = room.players.find(
+      p => p.name === playerName && !p.disconnected
+    );
+    if (sameNamePlayer) {
+      console.log(`❌ Un joueur avec le nom ${playerName} existe déjà dans ${roomCode}`);
+      return null;
+    }
+
+    // Permettre de rejoindre une partie en cours (spectateur temporaire)
+    // Le joueur pourra participer à partir du prochain round
+    const canJoin = room.gameState === 'waiting' || room.gameState === 'playing' || room.gameState === 'revealing' || room.gameState === 'scoring';
+
+    if (!canJoin) {
+      console.log(`❌ ${playerName} ne peut pas rejoindre ${roomCode} : état invalide (${room.gameState})`);
+      return null;
     }
 
     room.players.push({
@@ -117,10 +145,12 @@ class GameManager {
       isHost: false,
       joinedAt: new Date(),
       score: 0,
-      team: null // 'blue' ou 'red' en mode teams
+      team: null, // 'blue' ou 'red' en mode teams
+      disconnected: false,
+      disconnectedAt: null
     });
 
-    console.log(`✅ ${playerName} a rejoint la room ${roomCode}`);
+    console.log(`✅ ${playerName} a rejoint la room ${roomCode} (état: ${room.gameState})`);
 
     return room;
   }
@@ -157,6 +187,95 @@ class GameManager {
     }
 
     console.log(`👋 Joueur ${playerId} a quitté la room ${roomCode}`);
+
+    return room;
+  }
+
+  /**
+   * Marque un joueur comme déconnecté (grace period de 30s)
+   * @param {string} roomCode - Code de la room
+   * @param {string} playerId - ID du joueur
+   * @returns {Object|null} Room mise à jour ou null si room supprimée
+   */
+  markPlayerDisconnected(roomCode, playerId) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room) {
+      return null;
+    }
+
+    const player = room.players.find(p => p.id === playerId);
+    if (!player) {
+      console.log(`⚠️ Joueur ${playerId} introuvable dans ${roomCode}`);
+      return room;
+    }
+
+    // Marquer comme déconnecté
+    player.disconnected = true;
+    player.disconnectedAt = new Date();
+
+    console.log(`⏳ ${player.name} marqué comme déconnecté dans ${roomCode} (30s pour se reconnecter)`);
+
+    // Si l'hôte est déconnecté ET qu'il y a d'autres joueurs connectés, promouvoir un autre joueur
+    if (player.isHost) {
+      const connectedPlayers = room.players.filter(p => !p.disconnected);
+      if (connectedPlayers.length > 0) {
+        player.isHost = false;
+        connectedPlayers[0].isHost = true;
+        console.log(`👑 ${connectedPlayers[0].name} est maintenant l'hôte de ${roomCode} (temporaire)`);
+      }
+    }
+
+    return room;
+  }
+
+  /**
+   * Nettoie les joueurs déconnectés depuis plus de 30 secondes
+   * @param {string} roomCode - Code de la room
+   * @returns {Object|null} Room mise à jour ou null si room supprimée
+   */
+  cleanupDisconnectedPlayers(roomCode) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room) {
+      return null;
+    }
+
+    const now = new Date();
+    const DISCONNECT_TIMEOUT = 30000; // 30 secondes
+
+    // Filtrer les joueurs qui sont déconnectés depuis plus de 30s
+    const playersToRemove = room.players.filter(p => {
+      if (!p.disconnected || !p.disconnectedAt) return false;
+      const disconnectDuration = now - new Date(p.disconnectedAt);
+      return disconnectDuration >= DISCONNECT_TIMEOUT;
+    });
+
+    if (playersToRemove.length > 0) {
+      playersToRemove.forEach(p => {
+        console.log(`🗑️ Suppression de ${p.name} de ${roomCode} (déconnecté > 30s)`);
+      });
+
+      room.players = room.players.filter(p => !playersToRemove.includes(p));
+
+      // Si la room est vide, la supprimer
+      if (room.players.length === 0) {
+        timerManager.stopTimer(roomCode);
+        this.rooms.delete(roomCode);
+        console.log(`🗑️ Room ${roomCode} supprimée (vide)`);
+        return null;
+      }
+
+      // Si l'hôte a été supprimé, promouvoir le premier joueur connecté
+      const hasHost = room.players.some(p => p.isHost);
+      if (!hasHost && room.players.length > 0) {
+        const connectedPlayers = room.players.filter(p => !p.disconnected);
+        if (connectedPlayers.length > 0) {
+          connectedPlayers[0].isHost = true;
+          console.log(`👑 ${connectedPlayers[0].name} est maintenant l'hôte de ${roomCode}`);
+        }
+      }
+    }
 
     return room;
   }
@@ -556,6 +675,13 @@ class GameManager {
       return null;
     }
 
+    if (room.game.isTransitioning) {
+      console.log(`⚠️ Transition déjà en cours pour ${roomCode}`);
+      return room;
+    }
+  
+    room.game.isTransitioning = true;
+  
     const game = room.game;
 
     // Arrêter le timer du round précédent
@@ -623,6 +749,9 @@ class GameManager {
       this.startRoundTimer(roomCode, 'psychic');
     }
 
+    room.game.isTransitioning = false;
+
+
     return room;
   }
 
@@ -638,11 +767,21 @@ class GameManager {
       return null;
     }
 
-    // Réinitialiser les scores
+    // Arrêter le timer en cours
+    timerManager.stopTimer(roomCode);
+
+    // Réinitialiser les scores des joueurs
     room.players.forEach(player => {
       player.score = 0;
     });
 
+    // Réinitialiser les scores des équipes
+    if (room.teams) {
+      room.teams.blue.score = 0;
+      room.teams.red.score = 0;
+    }
+
+    // Réinitialiser l'état du jeu
     room.gameState = 'waiting';
     room.game = null;
 
