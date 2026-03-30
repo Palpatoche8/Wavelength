@@ -735,6 +735,8 @@ class GameManager {
 
     room.game.isTransitioning = false;
 
+    // Valider la cohérence du jeu (debug)
+    this.validateGameState(roomCode);
 
     return room;
   }
@@ -772,6 +774,78 @@ class GameManager {
     console.log(`🔄 Partie réinitialisée dans ${roomCode}`);
 
     return room;
+  }
+
+  /**
+   * Valide la cohérence de l'état du jeu (debug & synchronisation)
+   * @param {string} roomCode - Code de la room
+   * @returns {Object} Résultat de la validation avec warnings
+   */
+  validateGameState(roomCode) {
+    const room = this.rooms.get(roomCode);
+    const warnings = [];
+
+    if (!room) {
+      return { valid: false, warnings: ['Room introuvable'] };
+    }
+
+    if (!room.game || room.gameState !== 'playing') {
+      return { valid: true, warnings: [] }; // Pas de jeu en cours, pas besoin de valider
+    }
+
+    const game = room.game;
+
+    // Vérifier qu'il y a UN SEUL maître
+    if (!game.psychicId) {
+      warnings.push('⚠️ CRITIQUE: Aucun maître défini');
+    } else {
+      const psychic = room.players.find(p => p.id === game.psychicId);
+      if (!psychic) {
+        warnings.push(`⚠️ CRITIQUE: Le maître ${game.psychicId} n'existe pas dans la liste des joueurs`);
+      }
+
+      // Vérifier que psychicIndex correspond à psychicId
+      if (game.psychicIndex !== null) {
+        const playerAtIndex = room.players[game.psychicIndex];
+        if (!playerAtIndex || playerAtIndex.id !== game.psychicId) {
+          warnings.push(`⚠️ Incohérence: psychicIndex (${game.psychicIndex}) ne correspond pas à psychicId (${game.psychicId})`);
+        }
+      }
+    }
+
+    // Vérifier qu'il y a une carte actuelle
+    if (!game.currentCard) {
+      warnings.push('⚠️ Aucune carte définie pour le round actuel');
+    }
+
+    // Vérifier qu'il y a une cible
+    if (game.targetValue === null || game.targetValue === undefined) {
+      warnings.push('⚠️ CRITIQUE: Aucune valeur cible définie');
+    } else if (game.targetValue < 1 || game.targetValue > 20) {
+      warnings.push(`⚠️ Valeur cible invalide: ${game.targetValue} (doit être entre 1 et 20)`);
+    }
+
+    // Vérifier le numéro de round
+    if (game.currentRound < 1) {
+      warnings.push(`⚠️ Numéro de round invalide: ${game.currentRound} (doit être >= 1)`);
+    }
+    if (game.currentRound > game.totalRounds) {
+      warnings.push(`⚠️ Round actuel (${game.currentRound}) dépasse le total (${game.totalRounds})`);
+    }
+
+    // Logger les warnings
+    if (warnings.length > 0) {
+      console.log(`\n🔍 Validation de ${roomCode} - Round ${game.currentRound}:`);
+      warnings.forEach(w => console.log(`   ${w}`));
+      console.log(`   Maître: ${game.psychicId} (index: ${game.psychicIndex})`);
+      console.log(`   Carte: ${game.currentCard?.left} ↔ ${game.currentCard?.right}`);
+      console.log(`   Cible: ${game.targetValue}`);
+    }
+
+    return {
+      valid: warnings.filter(w => w.includes('CRITIQUE')).length === 0,
+      warnings
+    };
   }
 
   /**
