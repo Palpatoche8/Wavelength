@@ -14,9 +14,6 @@ function ProgressBar({ currentRound, totalRounds }) {
         <span className="text-sm font-medium text-gray-700">
           Tour {currentRound} / {totalRounds}
         </span>
-        <span className="text-xs text-gray-500">
-          {Math.round(percentage)}% complété
-        </span>
       </div>
 
       {/* Barre de progression */}
