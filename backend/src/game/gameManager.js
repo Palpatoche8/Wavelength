@@ -359,7 +359,7 @@ class GameManager {
       targetValue: null, // Sera défini par nextRound()
       psychicIndex: null, // Sera défini par nextRound()
       psychicId: null, // Sera défini par nextRound()
-      currentRound: 0, // Sera incrémenté à 1 par nextRound()
+      currentRound: -1, // Sera incrémenté à 1 par nextRound()
       totalRounds: totalRounds,
       guesses: [],
       clue: null,
