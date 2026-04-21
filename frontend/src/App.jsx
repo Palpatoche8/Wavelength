@@ -104,13 +104,27 @@ function App() {
   const handleLeaveRoom = () => {
     if (!socket || !currentRoom) return;
 
-    socket.emit('leave-room', { roomCode: currentRoom.code });
+    const roomCode = currentRoom.code;
 
-    socket.once('left-room', () => {
-      console.log('👋 Room quittée');
-      setCurrentRoom(null);
-      setPlayerName('');
-    });
+    // Réinitialiser l'état immédiatement (optimistic update)
+    setCurrentRoom(null);
+    setPlayerName('');
+
+    // Envoyer la notification au serveur
+    socket.emit('leave-room', { roomCode });
+
+    // Nettoyer les listeners spécifiques au jeu en cours
+    socket.off('round-started');
+    socket.off('clue-submitted');
+    socket.off('result-revealed');
+    socket.off('game-finished');
+    socket.off('target-revealed');
+    socket.off('timer-tick');
+    socket.off('timer-expired');
+    socket.off('left-room');
+    socket.off('join-room-error');
+
+    console.log('👋 Room quittée');
   };
 
   return (
