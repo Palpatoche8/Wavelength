@@ -351,54 +351,30 @@ class GameManager {
     // Initialiser le jeu
 
 
-    // Générer une valeur cible avec distribution gaussienne pour éviter trop d'extrêmes
-    const generateTargetValue = () => {
-      // Distribution gaussienne centrée sur 10.5 avec écart-type de 5
-      // Utilise la méthode Box-Muller pour obtenir une distribution normale
-      const u1 = Math.random();
-      const u2 = Math.random();
-      const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-
-      // Convertir en valeur entre 1 et 20 (moyenne = 10.5, écart-type = 5)
-      let value = Math.round(10.5 + z0 * 5);
-
-      // Clamper entre 1 et 20
-      return Math.max(1, Math.min(20, value));
-    };
-
     room.gameState = 'playing';
     room.game = {
       deck: deck,
-      currentCardIndex: 0,
-      currentCard: deck[0],
-      targetValue: generateTargetValue(),
-      psychicIndex: randomPsychicIndex,
-      psychicId: room.players[randomPsychicIndex].id,
-      currentRound: 0,
+      currentCardIndex: -1, // Sera incrémenté à 0 par nextRound()
+      currentCard: null, // Sera défini par nextRound()
+      targetValue: null, // Sera défini par nextRound()
+      psychicIndex: null, // Sera défini par nextRound()
+      psychicId: null, // Sera défini par nextRound()
+      currentRound: 0, // Sera incrémenté à 1 par nextRound()
       totalRounds: totalRounds,
-      guesses: [], // Tableau des réponses: [{playerId, guessValue}, ...]
-      clue: null, // Indice donné par le psychique
+      guesses: [],
+      clue: null,
       startedAt: new Date(),
-      // NEW: Timer fields
       roundStartTime: null,
       roundTimeLimit: room.settings.timerDuration,
       timerExpired: false,
-      // NEW: Teams mode fields
-      currentTeam: room.settings.gameMode === 'teams' ? 'blue' : null // Équipe qui joue (mode teams)
+      currentTeam: room.settings.gameMode === 'teams' ? 'blue' : null
     };
 
-    console.log(`🎮 Partie démarrée dans ${roomCode}`);
-    console.log(`   Carte: ${room.game.currentCard.left} ↔ ${room.game.currentCard.right}`);
-    console.log(`   Cible: ${room.game.targetValue}`);
-    console.log(`   Psychique: ${room.players[room.game.psychicIndex].name}`);
+    console.log(`🎮 Partie créée dans ${roomCode}`);
     console.log(`   Paramètres: timer=${room.settings.timerEnabled}, difficulté=${room.settings.difficulty}, tours=${totalRounds}`);
 
-    // Démarrer le timer du psychique pour le premier round si activé
-    if (room.settings.timerEnabled) {
-      this.startRoundTimer(roomCode, 'psychic');
-    }
-
-    return room;
+    // Lancer le premier round via nextRound()
+    return this.nextRound(roomCode);
   }
 
   /**
@@ -679,25 +655,28 @@ class GameManager {
       console.log(`⚠️ Transition déjà en cours pour ${roomCode}`);
       return room;
     }
-  
+
     room.game.isTransitioning = true;
-  
+
     const game = room.game;
 
     // Arrêter le timer du round précédent
     timerManager.stopTimer(roomCode);
 
+    // Incrémenter le round (0 -> 1 pour le premier round)
+    game.currentRound++;
+
     // Vérifier si la partie est terminée
-    if (game.currentRound >= game.totalRounds) {
+    if (game.currentRound > game.totalRounds) {
       room.gameState = 'finished';
       console.log(`🏁 Partie terminée dans ${roomCode}`);
       return room;
     }
 
-    // Passer au joueur psychique suivant
+    // Choisir le psychique
     if (room.settings.gameMode === 'teams') {
       // Mode par équipe : alterner l'équipe qui joue (sauf au premier round)
-      if (game.currentRound > 0) {
+      if (game.currentRound > 1) {
         game.currentTeam = game.currentTeam === 'blue' ? 'red' : 'blue';
       }
       // Au premier round, currentTeam est déjà défini à 'blue' dans startGame
@@ -712,8 +691,14 @@ class GameManager {
 
       console.log(`   Équipe ${game.currentTeam} joue`);
     } else {
-      // Mode chacun pour soi : rotation normale
-      game.psychicIndex = (game.psychicIndex + 1) % room.players.length;
+      // Mode chacun pour soi
+      if (game.currentRound === 1) {
+        // Premier round : choisir un psychique aléatoire
+        game.psychicIndex = Math.floor(Math.random() * room.players.length);
+      } else {
+        // Rounds suivants : rotation normale
+        game.psychicIndex = (game.psychicIndex + 1) % room.players.length;
+      }
       game.psychicId = room.players[game.psychicIndex].id;
     }
 
@@ -736,7 +721,6 @@ class GameManager {
     game.clue = null;
     game.lastResult = null;
     game.timerExpired = false;
-    game.currentRound++;
 
     room.gameState = 'playing';
 
@@ -751,6 +735,8 @@ class GameManager {
 
     room.game.isTransitioning = false;
 
+    // Valider la cohérence du jeu (debug)
+    this.validateGameState(roomCode);
 
     return room;
   }
@@ -788,6 +774,78 @@ class GameManager {
     console.log(`🔄 Partie réinitialisée dans ${roomCode}`);
 
     return room;
+  }
+
+  /**
+   * Valide la cohérence de l'état du jeu (debug & synchronisation)
+   * @param {string} roomCode - Code de la room
+   * @returns {Object} Résultat de la validation avec warnings
+   */
+  validateGameState(roomCode) {
+    const room = this.rooms.get(roomCode);
+    const warnings = [];
+
+    if (!room) {
+      return { valid: false, warnings: ['Room introuvable'] };
+    }
+
+    if (!room.game || room.gameState !== 'playing') {
+      return { valid: true, warnings: [] }; // Pas de jeu en cours, pas besoin de valider
+    }
+
+    const game = room.game;
+
+    // Vérifier qu'il y a UN SEUL maître
+    if (!game.psychicId) {
+      warnings.push('⚠️ CRITIQUE: Aucun maître défini');
+    } else {
+      const psychic = room.players.find(p => p.id === game.psychicId);
+      if (!psychic) {
+        warnings.push(`⚠️ CRITIQUE: Le maître ${game.psychicId} n'existe pas dans la liste des joueurs`);
+      }
+
+      // Vérifier que psychicIndex correspond à psychicId
+      if (game.psychicIndex !== null) {
+        const playerAtIndex = room.players[game.psychicIndex];
+        if (!playerAtIndex || playerAtIndex.id !== game.psychicId) {
+          warnings.push(`⚠️ Incohérence: psychicIndex (${game.psychicIndex}) ne correspond pas à psychicId (${game.psychicId})`);
+        }
+      }
+    }
+
+    // Vérifier qu'il y a une carte actuelle
+    if (!game.currentCard) {
+      warnings.push('⚠️ Aucune carte définie pour le round actuel');
+    }
+
+    // Vérifier qu'il y a une cible
+    if (game.targetValue === null || game.targetValue === undefined) {
+      warnings.push('⚠️ CRITIQUE: Aucune valeur cible définie');
+    } else if (game.targetValue < 1 || game.targetValue > 20) {
+      warnings.push(`⚠️ Valeur cible invalide: ${game.targetValue} (doit être entre 1 et 20)`);
+    }
+
+    // Vérifier le numéro de round
+    if (game.currentRound < 1) {
+      warnings.push(`⚠️ Numéro de round invalide: ${game.currentRound} (doit être >= 1)`);
+    }
+    if (game.currentRound > game.totalRounds) {
+      warnings.push(`⚠️ Round actuel (${game.currentRound}) dépasse le total (${game.totalRounds})`);
+    }
+
+    // Logger les warnings
+    if (warnings.length > 0) {
+      console.log(`\n🔍 Validation de ${roomCode} - Round ${game.currentRound}:`);
+      warnings.forEach(w => console.log(`   ${w}`));
+      console.log(`   Maître: ${game.psychicId} (index: ${game.psychicIndex})`);
+      console.log(`   Carte: ${game.currentCard?.left} ↔ ${game.currentCard?.right}`);
+      console.log(`   Cible: ${game.targetValue}`);
+    }
+
+    return {
+      valid: warnings.filter(w => w.includes('CRITIQUE')).length === 0,
+      warnings
+    };
   }
 
   /**
