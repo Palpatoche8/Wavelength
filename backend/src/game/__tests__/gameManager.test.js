@@ -87,7 +87,7 @@ describe('GameManager - Démarrage et rounds', () => {
     expect(room).toBeTruthy();
     expect(room.gameState).toBe('playing');
     expect(room.game).toBeTruthy();
-    expect(room.game.currentRound).toBe(0); // Round 0 (sera incrémenté à 1 par nextRound)
+    expect(room.game.currentRound).toBe(1); // startGame() appelle nextRound() automatiquement
     expect(room.game.psychicId).toBeTruthy();
     expect(room.game.currentCard).toBeTruthy();
     expect(room.game.targetValue).toBeGreaterThanOrEqual(1);
@@ -145,7 +145,7 @@ describe('GameManager - Démarrage et rounds', () => {
     gameManager.joinRoom(roomCode, 'player2', 'Bob');
 
     const room = gameManager.startGame(roomCode);
-    expect(room.game.currentRound).toBe(0);
+    expect(room.game.currentRound).toBe(1); // startGame() appelle nextRound() automatiquement
 
     const psychic = room.game.psychicId;
     gameManager.submitClue(roomCode, psychic, 'Test');
@@ -155,7 +155,7 @@ describe('GameManager - Démarrage et rounds', () => {
     gameManager.revealResult(roomCode);
 
     const room2 = gameManager.nextRound(roomCode);
-    expect(room2.game.currentRound).toBe(1); // Incrémenté de 0 à 1
+    expect(room2.game.currentRound).toBe(2); // Round 2
   });
 
   test('La partie se termine après le nombre de rounds configuré', () => {
@@ -164,14 +164,20 @@ describe('GameManager - Démarrage et rounds', () => {
 
     const room = gameManager.startGame(roomCode, { totalRounds: 2 });
     expect(room.game.totalRounds).toBe(2);
-    expect(room.game.currentRound).toBe(0);
+    expect(room.game.currentRound).toBe(1); // startGame() appelle nextRound() automatiquement
 
-    // Passer au round 1
+    // Compléter le round 1
+    const psychic = room.game.psychicId;
+    gameManager.submitClue(roomCode, psychic, 'Test');
+    gameManager.submitGuess(roomCode, room.players.find(p => p.id !== psychic).id, 10);
+    gameManager.revealResult(roomCode);
+
+    // Passer au round 2
     const room1 = gameManager.nextRound(roomCode);
     expect(room1.gameState).toBe('playing');
-    expect(room1.game.currentRound).toBe(1);
+    expect(room1.game.currentRound).toBe(2);
 
-    // Jouer le round 1
+    // Jouer le round 2
     const psychic1 = room1.game.psychicId;
     gameManager.submitClue(roomCode, psychic1, 'Test 1');
     room1.players.filter(p => p.id !== psychic1).forEach(p => {
@@ -179,22 +185,9 @@ describe('GameManager - Démarrage et rounds', () => {
     });
     gameManager.revealResult(roomCode);
 
-    // Passer au round 2
+    // Essayer de passer au round 3 -> partie terminée car totalRounds=2
     const room2 = gameManager.nextRound(roomCode);
-    expect(room2.gameState).toBe('playing');
-    expect(room2.game.currentRound).toBe(2);
-
-    // Jouer le round 2
-    const psychic2 = room2.game.psychicId;
-    gameManager.submitClue(roomCode, psychic2, 'Test 2');
-    room2.players.filter(p => p.id !== psychic2).forEach(p => {
-      gameManager.submitGuess(roomCode, p.id, 10);
-    });
-    gameManager.revealResult(roomCode);
-
-    // Essayer de passer au round 3 -> partie terminée
-    const room3 = gameManager.nextRound(roomCode);
-    expect(room3.gameState).toBe('finished');
+    expect(room2.gameState).toBe('finished');
   });
 });
 
@@ -446,21 +439,119 @@ describe('GameManager - Mode Teams', () => {
 
     const room = gameManager.startGame(roomCode, { gameMode: 'teams' });
     expect(room.game.currentTeam).toBe('blue');
-    expect(room.game.currentRound).toBe(0);
+    expect(room.game.currentRound).toBe(1); // startGame() appelle nextRound() automatiquement
 
-    // Passer au round 1 (toujours équipe bleue car c'est le premier round réel)
-    const room1 = gameManager.nextRound(roomCode);
-    expect(room1.game.currentTeam).toBe('blue');
-    expect(room1.game.currentRound).toBe(1);
-
-    const psychic = room1.game.psychicId;
+    const psychic = room.game.psychicId;
     gameManager.submitClue(roomCode, psychic, 'Test');
-    gameManager.submitGuess(roomCode, room1.players.find(p => p.id !== psychic && p.team === 'blue').id, 10);
+    gameManager.submitGuess(roomCode, room.players.find(p => p.id !== psychic && p.team === 'blue').id, 10);
     gameManager.revealResult(roomCode);
 
-    // Passer au round 2 (alternance vers équipe rouge)
+    // Round 2 (alternance vers équipe rouge)
+    const room1 = gameManager.nextRound(roomCode);
+    expect(room1.game.currentTeam).toBe('red');
+    expect(room1.game.currentRound).toBe(2);
+
+    const psychic1 = room1.game.psychicId;
+    gameManager.submitClue(roomCode, psychic1, 'Test');
+    gameManager.submitGuess(roomCode, room1.players.find(p => p.id !== psychic1 && p.team === 'red').id, 10);
+    gameManager.revealResult(roomCode);
+
+    // Passer au round 3 (alternance vers équipe bleue)
     const room2 = gameManager.nextRound(roomCode);
-    expect(room2.game.currentTeam).toBe('red'); // Alternance
-    expect(room2.game.currentRound).toBe(2);
+    expect(room2.game.currentTeam).toBe('blue'); // Alternance
+    expect(room2.game.currentRound).toBe(3);
+  });
+});
+
+describe('GameManager - Reconnexion et join en cours', () => {
+  beforeEach(() => {
+    gameManager.rooms.clear();
+  });
+
+  test('Rejoindre une partie déjà en cours', () => {
+    const { roomCode } = gameManager.createRoom('player1', 'Alice');
+    gameManager.joinRoom(roomCode, 'player2', 'Bob');
+    gameManager.startGame(roomCode);
+    gameManager.nextRound(roomCode);
+
+    const room = gameManager.getRoom(roomCode);
+    expect(room.gameState).toBe('playing');
+
+    // Un nouveau joueur doit pouvoir rejoindre même en cours
+    const joinedRoom = gameManager.joinRoom(roomCode, 'player3', 'Charlie');
+    expect(joinedRoom).toBeTruthy();
+    expect(joinedRoom.players).toHaveLength(3);
+    expect(joinedRoom.players[2].name).toBe('Charlie');
+  });
+
+  test('Quitter et rejoindre avec récupération du score (partie en cours)', () => {
+    const { roomCode } = gameManager.createRoom('player1', 'Alice');
+    gameManager.joinRoom(roomCode, 'player2', 'Bob');
+    gameManager.joinRoom(roomCode, 'player3', 'Charlie');
+
+    gameManager.startGame(roomCode); // Démarre automatiquement le round 1
+
+    let room = gameManager.getRoom(roomCode);
+    const psychic = room.game.psychicId;
+    const targetValue = room.game.targetValue;
+
+    gameManager.submitClue(roomCode, psychic, 'Test');
+
+    // En mode FFA, tous les joueurs non-psychiques doivent répondre
+    const nonPsychicPlayers = room.players.filter(p => p.id !== psychic);
+    const testPlayer = nonPsychicPlayers[0];
+    // Deviner près de la cible pour garantir des points
+    gameManager.submitGuess(roomCode, testPlayer.id, targetValue + 1);
+    // Faire répondre l'autre joueur pour déclencher la révélation
+    gameManager.submitGuess(roomCode, nonPsychicPlayers[1].id, targetValue + 2);
+
+    const result = gameManager.revealResult(roomCode);
+    room = gameManager.getRoom(roomCode);
+
+    // Vérifier que le joueur a un score
+    const playerBefore = room.players.find(p => p.id === testPlayer.id);
+    expect(playerBefore.score).toBeGreaterThan(0);
+    const scoreBefore = playerBefore.score;
+
+    // Marquer le joueur comme déconnecté (simule un leave en cours de partie)
+    gameManager.markPlayerDisconnected(roomCode, testPlayer.id);
+    room = gameManager.getRoom(roomCode);
+
+    const disconnectedPlayer = room.players.find(p => p.name === playerBefore.name);
+    expect(disconnectedPlayer.disconnected).toBe(true);
+
+    // Le joueur rejoint avec un nouveau socket ID mais le même nom
+    const rejoinedRoom = gameManager.joinRoom(roomCode, 'player2_new_socket', playerBefore.name);
+    expect(rejoinedRoom).toBeTruthy();
+
+    // Vérifier que c'est bien le même joueur reconnecté
+    const playerAfter = rejoinedRoom.players.find(p => p.name === playerBefore.name);
+    expect(playerAfter).toBeTruthy();
+    expect(playerAfter.disconnected).toBe(false);
+    expect(playerAfter.score).toBe(scoreBefore); // Score préservé
+    expect(playerAfter.id).toBe('player2_new_socket'); // Nouveau socket ID
+  });
+
+  test('Quitter en phase waiting supprime le joueur définitivement', () => {
+    const { roomCode } = gameManager.createRoom('player1', 'Alice');
+    gameManager.joinRoom(roomCode, 'player2', 'Bob');
+
+    let room = gameManager.getRoom(roomCode);
+    expect(room.players).toHaveLength(2);
+    expect(room.gameState).toBe('waiting');
+
+    // Quitter en phase waiting
+    gameManager.leaveRoom(roomCode, 'player2');
+    room = gameManager.getRoom(roomCode);
+
+    expect(room.players).toHaveLength(1);
+    expect(room.players.find(p => p.name === 'Bob')).toBeUndefined();
+
+    // Rejoindre à nouveau crée un nouveau joueur
+    const rejoinedRoom = gameManager.joinRoom(roomCode, 'player2_new', 'Bob');
+    expect(rejoinedRoom.players).toHaveLength(2);
+    const newBob = rejoinedRoom.players.find(p => p.name === 'Bob');
+    expect(newBob).toBeTruthy();
+    expect(newBob.score).toBe(0); // Nouveau joueur, score à 0
   });
 });

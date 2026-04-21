@@ -48,15 +48,6 @@ export function setupSocketHandlers(io) {
         return;
       }
 
-      // Vérifier si la partie est en cours
-      if (existingRoom.gameState !== 'waiting') {
-        socket.emit('join-room-error', {
-          success: false,
-          message: `Impossible de rejoindre : partie en cours`
-        });
-        return;
-      }
-
       const room = gameManager.joinRoom(roomCode, socket.id, playerName);
 
       if (!room) {
@@ -98,16 +89,46 @@ export function setupSocketHandlers(io) {
     socket.on('leave-room', ({ roomCode }) => {
       console.log(`👋 ${socket.id} quitte ${roomCode}`);
 
-      const room = gameManager.leaveRoom(roomCode, socket.id);
+      const existingRoom = gameManager.getRoom(roomCode);
 
-      socket.leave(roomCode);
+      if (!existingRoom) {
+        socket.emit('left-room', { success: true });
+        return;
+      }
 
-      if (room) {
-        // Informer les joueurs restants
-        io.to(roomCode).emit('room-updated', room);
-        io.to(roomCode).emit('player-left', {
-          playerId: socket.id
-        });
+      let room;
+
+      // Si la partie est en attente, retirer complètement le joueur
+      if (existingRoom.gameState === 'waiting') {
+        room = gameManager.leaveRoom(roomCode, socket.id);
+        socket.leave(roomCode);
+
+        if (room) {
+          io.to(roomCode).emit('room-updated', room);
+          io.to(roomCode).emit('player-left', {
+            playerId: socket.id
+          });
+        }
+      } else {
+        // Si la partie est en cours, marquer comme déconnecté pour permettre la reconnexion
+        room = gameManager.markPlayerDisconnected(roomCode, socket.id);
+
+        if (room) {
+          const player = room.players.find(p => p.id === socket.id);
+          io.to(roomCode).emit('room-updated', room);
+          io.to(roomCode).emit('player-disconnected', {
+            playerId: socket.id,
+            playerName: player?.name
+          });
+
+          // Nettoyer après 30 secondes si pas de reconnexion
+          setTimeout(() => {
+            const cleanedRoom = gameManager.cleanupDisconnectedPlayers(roomCode);
+            if (cleanedRoom) {
+              io.to(roomCode).emit('room-updated', cleanedRoom);
+            }
+          }, 30000);
+        }
       }
 
       socket.emit('left-room', { success: true });
