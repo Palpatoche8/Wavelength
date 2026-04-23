@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import HelpModal from './HelpModal';
 
 /**
@@ -15,23 +16,42 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('room-updated', (updatedRoom) => {
+    const handleRoomUpdated = (updatedRoom) => {
       console.log('🔄 Room mise à jour', updatedRoom);
       setCurrentRoom(updatedRoom);
-    });
+    };
 
-    socket.on('player-joined', ({ playerName: newPlayerName }) => {
+    const handlePlayerJoined = ({ playerName: newPlayerName }) => {
       console.log(`👋 ${newPlayerName} a rejoint la partie`);
-    });
+    };
 
-    socket.on('player-left', ({ playerId }) => {
+    const handlePlayerLeft = ({ playerId }) => {
       console.log(`👋 Joueur ${playerId} a quitté la partie`);
-    });
+    };
+
+    socket.on('room-updated', handleRoomUpdated);
+    socket.on('player-joined', handlePlayerJoined);
+    socket.on('player-left', handlePlayerLeft);
 
     return () => {
-      socket.off('room-updated');
-      socket.off('player-joined');
-      socket.off('player-left');
+      socket.off('room-updated', handleRoomUpdated);
+      socket.off('player-joined', handlePlayerJoined);
+      socket.off('player-left', handlePlayerLeft);
+    };
+  }, [socket]);
+
+  // Écouter les mises à jour de paramètres
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleSettingsUpdated = ({ room: updatedRoom }) => {
+      setCurrentRoom(updatedRoom);
+    };
+
+    socket.on('settings-updated', handleSettingsUpdated);
+
+    return () => {
+      socket.off('settings-updated', handleSettingsUpdated);
     };
   }, [socket]);
 
@@ -42,18 +62,15 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  // Trouver le joueur actuel
   const currentPlayer = currentRoom.players.find(p => p.name === playerName);
   const isHost = currentPlayer?.isHost || false;
 
-  // Démarrer la partie
   const handleStartGame = () => {
     socket.emit('start-game', {
       roomCode: currentRoom.code
     });
   };
 
-  // Mettre à jour les paramètres
   const handleUpdateSettings = (newSettings) => {
     socket.emit('update-settings', {
       roomCode: currentRoom.code,
@@ -61,329 +78,283 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
     });
   };
 
-  // Écouter les mises à jour de paramètres
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on('settings-updated', ({ room: updatedRoom }) => {
-      setCurrentRoom(updatedRoom);
-    });
-
-    return () => {
-      socket.off('settings-updated');
-    };
-  }, [socket]);
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Fond dégradé animé */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-50"></div>
+
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl"
+          animate={{
+            x: [0, 50, 0],
+            y: [0, -30, 0],
+          }}
+          transition={{ duration: 15, repeat: Infinity }}
+        />
+        <motion.div
+          className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-400/20 rounded-full blur-3xl"
+          animate={{
+            x: [0, -40, 0],
+            y: [0, 40, 0],
+          }}
+          transition={{ duration: 20, repeat: Infinity }}
+        />
+      </div>
+
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
 
-      {/* Bouton Help flottant */}
-      <button
+      {/* Bouton Help amélioré */}
+      <motion.button
         onClick={() => setShowHelp(true)}
-        className="fixed top-4 right-4 w-12 h-12 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg transition-all hover:scale-110 z-50"
+        className="fixed top-4 right-4 w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-full shadow-2xl border border-white/30 transition-all z-50"
+        whileHover={{ scale: 1.1, rotate: 15 }}
+        whileTap={{ scale: 0.95 }}
         aria-label="Aide"
       >
-        <span className="text-xl font-bold">?</span>
-      </button>
+        <span className="text-2xl font-bold">?</span>
+      </motion.button>
 
-      <div className="max-w-2xl w-full">
-        {/* En-tête de la room */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+      <motion.div
+        className="max-w-2xl w-full relative z-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Carte principale avec glassmorphism */}
+        <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20">
           {/* Bannière du code */}
-          <div className="bg-gradient-to-r from-primary-600 to-indigo-600 text-white p-6">
+          <div className="bg-gradient-to-r from-purple-600/80 to-pink-600/80 backdrop-blur-sm text-white p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">
-                Salle de jeu
+              <h2 className="text-3xl font-black">
+                🎮 Salle de jeu
               </h2>
-              <button
+              <motion.button
                 onClick={onLeaveRoom}
-                className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-colors border border-white/30 font-semibold"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                 Quitter
-              </button>
+                ← Quitter
+              </motion.button>
             </div>
 
-            {/* Code de la room */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <p className="text-sm opacity-90 mb-1">Code de la partie :</p>
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl font-mono font-bold tracking-widest">
-                    {currentRoom.code}
-                  </span>
-                  <button
-                    onClick={handleCopyCode}
-                    className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm"
-                  >
-                    {copiedCode ? '✓ Copié !' : ' Copier'}
-                  </button>
-                </div>
+            {/* Code de la room avec effet brillant */}
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/30">
+              <p className="text-sm font-semibold opacity-90 mb-2">Code de la partie :</p>
+              <div className="flex items-center gap-3">
+                <motion.span
+                  className="text-5xl font-black tracking-[0.2em] bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent drop-shadow-lg"
+                  animate={{ scale: [1, 1.02, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  {currentRoom.code}
+                </motion.span>
+                <motion.button
+                  onClick={handleCopyCode}
+                  className="px-5 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all text-sm font-bold border border-white/30"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {copiedCode ? '✓ Copié !' : '📋 Copier'}
+                </motion.button>
               </div>
             </div>
           </div>
 
-          {/* Contenu de la room */}
-          <div className="p-6">
+          {/* Contenu */}
+          <div className="p-6 space-y-6">
             {/* Liste des joueurs */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span>👥 Joueurs connectés</span>
-                <span className="text-sm font-normal text-gray-500">
-                  ({currentRoom.players.length})
+            <div>
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <span>👥 Joueurs</span>
+                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm border border-white/30">
+                  {currentRoom.players.length}
                 </span>
               </h3>
 
               <div className="space-y-2">
-                {currentRoom.players.map((player) => (
-                  <div
-                    key={player.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border-2 ${
-                      player.disconnected
-                        ? 'border-gray-300 bg-gray-100 opacity-60'
-                        : player.name === playerName
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-gray-200 bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                <AnimatePresence>
+                  {currentRoom.players.map((player, index) => (
+                    <motion.div
+                      key={player.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ delay: index * 0.05 }}
+                      className={`flex items-center justify-between p-4 rounded-xl backdrop-blur-md border-2 transition-all ${
                         player.disconnected
-                          ? 'bg-gray-400'
-                          : 'bg-gradient-to-br from-primary-400 to-indigo-500'
-                      }`}>
-                        {player.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">
-                          {player.name}
-                          {player.name === playerName && (
-                            <span className="text-primary-600 ml-2">(Vous)</span>
-                          )}
+                          ? 'bg-gray-500/20 border-gray-400/30 opacity-60'
+                          : player.name === playerName
+                          ? 'bg-purple-400/30 border-purple-300/50 shadow-lg shadow-purple-500/20'
+                          : 'bg-white/10 border-white/20 hover:bg-white/15'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ${
+                          player.disconnected
+                            ? 'bg-gray-400'
+                            : 'bg-gradient-to-br from-purple-500 to-pink-600'
+                        }`}>
+                          {player.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-lg">
+                            {player.name}
+                            {player.name === playerName && (
+                              <span className="text-purple-300 ml-2 text-sm">(Vous)</span>
+                            )}
+                          </p>
                           {player.disconnected && (
-                            <span className="text-red-600 ml-2 text-xs">(Déconnecté)</span>
+                            <span className="text-red-300 text-xs font-semibold">⚠️ Déconnecté</span>
                           )}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(player.joinedAt).toLocaleTimeString('fr-FR', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
+                        </div>
                       </div>
-                    </div>
 
-                    {player.isHost && (
-                      <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
-                        👑 Hôte
-                      </span>
-                    )}
-                  </div>
-                ))}
+                      {player.isHost && (
+                        <motion.span
+                          className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-amber-900 text-sm font-bold rounded-full shadow-lg"
+                          animate={{ scale: [1, 1.05, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          👑 Hôte
+                        </motion.span>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </div>
 
-            {/* Statut de la partie */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                ℹ️ <strong>En attente de joueurs...</strong>
+            {/* Statut */}
+            <motion.div
+              className="bg-blue-400/20 backdrop-blur-md border border-blue-300/30 rounded-xl p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <p className="text-white font-semibold">
+                ℹ️ En attente de joueurs...
               </p>
-              <p className="text-xs text-blue-600 mt-1">
-                Partagez le code <strong>{currentRoom.code}</strong> avec vos amis pour commencer à jouer !
+              <p className="text-blue-100 text-sm mt-1">
+                Partagez le code <strong className="text-white">{currentRoom.code}</strong> avec vos amis !
               </p>
-            </div>
+            </motion.div>
 
-            {/* Paramètres de la partie (pour l'hôte uniquement) */}
+            {/* Paramètres (hôte) */}
             {isHost && (
-              <div className="mt-6">
-                <button
+              <div>
+                <motion.button
                   onClick={() => setShowSettings(!showSettings)}
-                  className="w-full py-3 px-6 rounded-lg font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all flex items-center justify-between"
+                  className="w-full py-3 px-6 rounded-xl font-bold text-white bg-white/10 hover:bg-white/20 backdrop-blur-md transition-all flex items-center justify-between border border-white/20"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <span>⚙️ Paramètres de la partie</span>
-                  <span>{showSettings ? '▲' : '▼'}</span>
-                </button>
+                  <span>⚙️ Paramètres</span>
+                  <motion.span
+                    animate={{ rotate: showSettings ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    ▼
+                  </motion.span>
+                </motion.button>
 
-                {showSettings && (
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
-                    {/* Mode de jeu */}
-                    <div>
-                      <label className="block font-medium text-gray-700 mb-2">
-                        🎮 Mode de jeu
-                      </label>
-                      <select
-                        value={currentRoom.settings.gameMode || 'ffa'}
-                        onChange={(e) => {
-                          handleUpdateSettings({
-                            ...currentRoom.settings,
-                            gameMode: e.target.value
-                          });
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value="ffa">Chacun pour soi</option>
-                        <option value="teams">Par équipe</option>
-                      </select>
-                      <p className="text-xs text-gray-600 mt-1">
-                        {currentRoom.settings.gameMode === 'teams'
-                          ? '⚠️ Mode par équipe : les joueurs seront divisés en 2 équipes (bleu vs rouge)'
-                          : 'Chaque joueur gagne des points individuellement'}
-                      </p>
-                    </div>
-
-                    {/* Timer */}
-                    <div>
-                      <label className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-gray-700">⏱️ Timer par tour</span>
-                        <input
-                          type="checkbox"
-                          checked={currentRoom.settings.timerEnabled}
-                          onChange={(e) => {
-                            handleUpdateSettings({
-                              ...currentRoom.settings,
-                              timerEnabled: e.target.checked,
-                              psychicTimerDuration: e.target.checked ? (currentRoom.settings.psychicTimerDuration || 60) : 60,
-                              playersTimerDuration: e.target.checked ? (currentRoom.settings.playersTimerDuration || 60) : 60
-                            });
-                          }}
-                          className="w-5 h-5 text-indigo-600 rounded"
-                        />
-                      </label>
-                      {currentRoom.settings.timerEnabled && (
-                        <div className="space-y-3 mt-2">
-                          {/* Timer du maître */}
-                          <div>
-                            <label className="block text-sm text-gray-600 mb-1">
-                              🧙 Timer Maître (donner l'indice)
-                            </label>
-                            <select
-                              value={currentRoom.settings.psychicTimerDuration || 60}
-                              onChange={(e) => {
-                                handleUpdateSettings({
-                                  ...currentRoom.settings,
-                                  psychicTimerDuration: parseInt(e.target.value)
-                                });
-                              }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
-                            >
-                              <option value={30}>30 secondes</option>
-                              <option value={60}>60 secondes</option>
-                              <option value={90}>90 secondes</option>
-                              <option value={120}>2 minutes</option>
-                            </select>
-                          </div>
-                          {/* Timer des joueurs */}
-                          <div>
-                            <label className="block text-sm text-gray-600 mb-1">
-                              🎮 Timer Joueurs (deviner)
-                            </label>
-                            <select
-                              value={currentRoom.settings.playersTimerDuration || 60}
-                              onChange={(e) => {
-                                handleUpdateSettings({
-                                  ...currentRoom.settings,
-                                  playersTimerDuration: parseInt(e.target.value)
-                                });
-                              }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
-                            >
-                              <option value={30}>30 secondes</option>
-                              <option value={60}>60 secondes</option>
-                              <option value={90}>90 secondes</option>
-                              <option value={120}>2 minutes</option>
-                            </select>
-                          </div>
+                <AnimatePresence>
+                  {showSettings && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-4 p-4 bg-white/5 backdrop-blur-md rounded-xl border border-white/20 space-y-4">
+                        {/* Mode de jeu */}
+                        <div>
+                          <label className="block font-bold text-white mb-2">
+                            🎮 Mode de jeu
+                          </label>
+                          <select
+                            value={currentRoom.settings.gameMode || 'ffa'}
+                            onChange={(e) => {
+                              handleUpdateSettings({
+                                ...currentRoom.settings,
+                                gameMode: e.target.value
+                              });
+                            }}
+                            className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white font-semibold backdrop-blur-sm focus:ring-2 focus:ring-purple-400 outline-none"
+                          >
+                            <option value="ffa" className="text-gray-900">Chacun pour soi</option>
+                            <option value="teams" className="text-gray-900">Par équipe</option>
+                          </select>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Progression automatique */}
-                    <div>
-                      <label className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-gray-700">⏭️ Progression auto des tours</span>
-                        <input
-                          type="checkbox"
-                          checked={currentRoom.settings.autoProgressRounds !== false}
-                          onChange={(e) => {
-                            handleUpdateSettings({
-                              ...currentRoom.settings,
-                              autoProgressRounds: e.target.checked
-                            });
-                          }}
-                          className="w-5 h-5 text-indigo-600 rounded"
-                        />
-                      </label>
-                      <p className="text-xs text-gray-600">
-                        {currentRoom.settings.autoProgressRounds !== false
-                          ? '✓ Les tours passent automatiquement après 6 secondes'
-                          : "⚠️ L'hôte devra cliquer pour passer au tour suivant"}
-                      </p>
-                    </div>
+                        {/* Timer */}
+                        <div>
+                          <label className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-white">⏱️ Timer</span>
+                            <input
+                              type="checkbox"
+                              checked={currentRoom.settings.timerEnabled}
+                              onChange={(e) => {
+                                handleUpdateSettings({
+                                  ...currentRoom.settings,
+                                  timerEnabled: e.target.checked,
+                                  psychicTimerDuration: e.target.checked ? (currentRoom.settings.psychicTimerDuration || 60) : 60,
+                                  playersTimerDuration: e.target.checked ? (currentRoom.settings.playersTimerDuration || 60) : 60
+                                });
+                              }}
+                              className="w-5 h-5 rounded"
+                            />
+                          </label>
+                        </div>
 
-                    {/* Nombre de tours */}
-                    <div>
-                      <label className="block font-medium text-gray-700 mb-2">
-                        🎯 Nombre de tours
-                      </label>
-                      <select
-                        value={currentRoom.settings.totalRounds || 'auto'}
-                        onChange={(e) => {
-                          const value = e.target.value === 'auto' ? null : parseInt(e.target.value);
-                          handleUpdateSettings({
-                            ...currentRoom.settings,
-                            totalRounds: value
-                          });
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value="auto">Auto (2 × nombre de joueurs)</option>
-                        <option value={5}>5 tours</option>
-                        <option value={10}>10 tours</option>
-                        <option value={15}>15 tours</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
+                        {/* Progression auto */}
+                        <div>
+                          <label className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-white">⏭️ Progression auto</span>
+                            <input
+                              type="checkbox"
+                              checked={currentRoom.settings.autoProgressRounds !== false}
+                              onChange={(e) => {
+                                handleUpdateSettings({
+                                  ...currentRoom.settings,
+                                  autoProgressRounds: e.target.checked
+                                });
+                              }}
+                              className="w-5 h-5 rounded"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
-            {/* Bouton de démarrage (pour l'hôte uniquement) */}
+            {/* Bouton démarrage */}
             {isHost && (
-              <div className="mt-6">
-                <button
-                  onClick={handleStartGame}
-                  disabled={currentRoom.players.length < 2}
-                  className={`w-full py-4 px-6 rounded-lg font-bold text-white transition-all ${
-                    currentRoom.players.length >= 2
-                      ? 'bg-green-600 hover:bg-green-700 active:scale-95'
-                      : 'bg-gray-300 cursor-not-allowed'
-                  }`}
-                >
-                   Démarrer la partie
-                  {currentRoom.players.length < 2 && (
-                    <span className="text-sm font-normal ml-2">
-                      (minimum 2 joueurs)
-                    </span>
-                  )}
-                </button>
-              </div>
+              <motion.button
+                onClick={handleStartGame}
+                disabled={currentRoom.players.length < 2}
+                className={`w-full py-4 px-6 rounded-xl font-black text-xl transition-all shadow-xl ${
+                  currentRoom.players.length >= 2
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-green-500/50'
+                    : 'bg-gray-400/30 text-gray-300 cursor-not-allowed'
+                }`}
+                whileHover={currentRoom.players.length >= 2 ? { scale: 1.02, y: -2 } : {}}
+                whileTap={currentRoom.players.length >= 2 ? { scale: 0.98 } : {}}
+              >
+                🚀 Démarrer la partie
+                {currentRoom.players.length < 2 && (
+                  <span className="text-sm font-normal ml-2">
+                    (min. 2 joueurs)
+                  </span>
+                )}
+              </motion.button>
             )}
           </div>
         </div>
-
-        {/* Informations supplémentaires */}
-        <div className="mt-6 bg-white rounded-lg shadow p-4">
-          <h4 className="font-semibold text-gray-800 mb-2">
-             Prochaines étapes
-          </h4>
-          <ul className="text-sm text-gray-600 space-y-1">
-            <li>✓ Room créée avec succès</li>
-            <li>✓ {currentRoom.players.length} joueur(s) connecté(s)</li>
-            <li>• Attendez que tous les joueurs rejoignent</li>
-            <li>• L'hôte pourra démarrer la partie</li>
-          </ul>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
