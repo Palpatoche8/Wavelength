@@ -40,7 +40,7 @@ export const CARDS = [
   { id: 34, left: "Pire Apéritif", right: "Meilleure Apéritif" },
   { id: 35, left: "Overrated skill", right: "Underrated skill" },
   { id: 36, left: "Mauvaise habitude", right: "Bonne habitude" },
-  { id: 37, left: "Pire arme se battre", right: "Meilleure arme pour se battre" },
+  { id: 37, left: "Pire arme pour se battre", right: "Meilleure arme pour se battre" },
   { id: 38, left: "Pire Super-Pouvoir", right: "Meilleur Super-Pouvoir" },
   { id: 39, left: "Demande de la chance", right: "Demande du talent" },
   { id: 40, left: "Pire petit déjeuner", right: "Meilleur petit déjeuner" },
