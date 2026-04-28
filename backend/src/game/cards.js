@@ -53,7 +53,15 @@ export const CARDS = [
   { id: 47, left: "Jamais à l'heure", right: "Toujours à l'heure" },
   { id: 48, left: "Personnage fictif détesté", right: "Personnage fictif adoré" },
   { id: 49, left: "Personne qui me détruirait", right: "Personne que je détruis" },
-  { id: 50, left: "Pire couleur", right: "Meilleure couleur" }
+  { id: 50, left: "Pire couleur de chaussure", right: "Meilleure couleur de chaussure" },
+  { id: 51, left: "Meilleur froid", right: "Meilleure chaud" },
+  { id: 52, left: "Pire cadeau à un enfant", right: "Meilleur cadeau à un enfant" },
+  { id: 53, left: "Pire Livre", right: "Meilleur Livre" },
+  { id: 54, left: "Pire Anime", right: "Meilleur Anime" },
+
+
+
+
 
 
 

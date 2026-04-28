@@ -48,15 +48,6 @@ export function setupSocketHandlers(io) {
         return;
       }
 
-      // Vérifier si la partie est en cours
-      if (existingRoom.gameState !== 'waiting') {
-        socket.emit('join-room-error', {
-          success: false,
-          message: `Impossible de rejoindre : partie en cours`
-        });
-        return;
-      }
-
       const room = gameManager.joinRoom(roomCode, socket.id, playerName);
 
       if (!room) {
@@ -98,16 +89,46 @@ export function setupSocketHandlers(io) {
     socket.on('leave-room', ({ roomCode }) => {
       console.log(`👋 ${socket.id} quitte ${roomCode}`);
 
-      const room = gameManager.leaveRoom(roomCode, socket.id);
+      const existingRoom = gameManager.getRoom(roomCode);
 
-      socket.leave(roomCode);
+      if (!existingRoom) {
+        socket.emit('left-room', { success: true });
+        return;
+      }
 
-      if (room) {
-        // Informer les joueurs restants
-        io.to(roomCode).emit('room-updated', room);
-        io.to(roomCode).emit('player-left', {
-          playerId: socket.id
-        });
+      let room;
+
+      // Si la partie est en attente, retirer complètement le joueur
+      if (existingRoom.gameState === 'waiting') {
+        room = gameManager.leaveRoom(roomCode, socket.id);
+        socket.leave(roomCode);
+
+        if (room) {
+          io.to(roomCode).emit('room-updated', room);
+          io.to(roomCode).emit('player-left', {
+            playerId: socket.id
+          });
+        }
+      } else {
+        // Si la partie est en cours, marquer comme déconnecté pour permettre la reconnexion
+        room = gameManager.markPlayerDisconnected(roomCode, socket.id);
+
+        if (room) {
+          const player = room.players.find(p => p.id === socket.id);
+          io.to(roomCode).emit('room-updated', room);
+          io.to(roomCode).emit('player-disconnected', {
+            playerId: socket.id,
+            playerName: player?.name
+          });
+
+          // Nettoyer après 30 secondes si pas de reconnexion
+          setTimeout(() => {
+            const cleanedRoom = gameManager.cleanupDisconnectedPlayers(roomCode);
+            if (cleanedRoom) {
+              io.to(roomCode).emit('room-updated', cleanedRoom);
+            }
+          }, 30000);
+        }
       }
 
       socket.emit('left-room', { success: true });
@@ -129,25 +150,52 @@ export function setupSocketHandlers(io) {
         return;
       }
 
-      // startGame() a déjà appelé nextRound(), donc le premier round est prêt
-      // Envoyer l'événement game-started suivi de round-started
+      // Envoyer l'état du jeu à tous les joueurs
+      // Le client devra appeler next-round pour démarrer le premier tour
       io.to(roomCode).emit('game-started', {
         success: true,
-        room
+        room,
+        needsFirstRound: true // Signal au client qu'il doit appeler next-round
       });
 
-      // Si le jeu est en cours (premier round initialisé), envoyer round-started
-      if (room.gameState === 'playing' && room.game) {
-        io.to(roomCode).emit('round-started', {
-          success: true,
-          room
-        });
+      // ⭐ TEST : Passer automatiquement au round 1
+      setTimeout(() => {
+        const updatedRoom = gameManager.nextRound(roomCode);
+        if (updatedRoom && updatedRoom.gameState === 'playing') {
+          io.to(roomCode).emit('round-started', {
+            success: true,
+            room: updatedRoom
+          });
 
-        // Envoyer la cible secrète au psychique du premier round
-        io.to(room.game.psychicId).emit('target-revealed', {
-          targetValue: room.game.targetValue
-        });
-      }
+          // Envoyer la cible au psychique
+          const psychicSocket = io.sockets.sockets.get(updatedRoom.game.psychicId);
+          if (psychicSocket) {
+            psychicSocket.emit('target-revealed', {
+              targetValue: updatedRoom.game.targetValue
+            });
+            console.log(`🎯 Cible ${updatedRoom.game.targetValue} envoyée au psychique ${updatedRoom.game.psychicId}`);
+          }
+
+          // Démarrer le timer si activé
+          if (updatedRoom.settings.timerEnabled) {
+            const onTick = (remainingTime) => {
+              io.to(roomCode).emit('timer-tick', {
+                remainingTime,
+                roomCode
+              });
+            };
+
+            const onExpire = (roomCode) => {
+              io.to(roomCode).emit('timer-expired', {
+                roomCode,
+                room: gameManager.getRoom(roomCode)
+              });
+            };
+
+            gameManager.startRoundTimer(roomCode, 'psychic', onTick, onExpire);
+          }
+        }
+      }, 100); // Délai de 100ms pour la synchronisation
     });
 
     // Le psychique soumet un indice
@@ -230,9 +278,16 @@ export function setupSocketHandlers(io) {
         });
 
         // Envoyer la nouvelle cible au nouveau psychique
-        io.to(room.game.psychicId).emit('target-revealed', {
-          targetValue: room.game.targetValue
-        });
+        // ⭐ CORRECTION : Utiliser le socket directement, pas io.to()
+        const psychicSocket = io.sockets.sockets.get(room.game.psychicId);
+        if (psychicSocket) {
+          psychicSocket.emit('target-revealed', {
+            targetValue: room.game.targetValue
+          });
+          console.log(`🎯 Cible ${room.game.targetValue} envoyée au psychique ${room.game.psychicId}`);
+        } else {
+          console.warn(`⚠️ Socket psychique ${room.game.psychicId} introuvable`);
+        }
 
         // Si le timer est activé, démarrer avec callbacks tick et expire
         if (room.settings.timerEnabled && room.settings.timerDuration) {
