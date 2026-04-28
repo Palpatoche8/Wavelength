@@ -49,34 +49,29 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   useEffect(() => {
     if (!socket) return;
 
-    // Mise à jour de la room
-    socket.on('room-updated', (updatedRoom) => {
+    // Handlers stockés localement pour pouvoir les retirer spécifiquement au cleanup
+    const handleRoomUpdated = (updatedRoom) => {
       setCurrentRoom(updatedRoom);
-    });
+    };
 
-    // Partie démarrée
-    socket.on('game-started', ({ room: updatedRoom }) => {
+    const handleGameStarted = ({ room: updatedRoom }) => {
       setCurrentRoom(updatedRoom);
       setShowResult(false);
       setLastResult(null);
       setDialValue(10);
       setClueText('');
       setHasSubmitted(false);
-    });
+    };
 
-    // Cible révélée (uniquement pour le psychique)
-    socket.on('target-revealed', ({ targetValue: target }) => {
+    const handleTargetRevealed = ({ targetValue: target }) => {
       setTargetValue(target);
-      // Le psychique voit la cible mais ne peut pas bouger le cadran
-    });
+    };
 
-    // Indice soumis
-    socket.on('clue-submitted', ({ room: updatedRoom }) => {
+    const handleClueSubmitted = ({ room: updatedRoom }) => {
       setCurrentRoom(updatedRoom);
-    });
+    };
 
-    // Résultat révélé
-    socket.on('result-revealed', ({ result, room: updatedRoom }) => {
+    const handleResultRevealed = ({ result, room: updatedRoom }) => {
       setCurrentRoom(updatedRoom);
       setLastResult(result);
       setShowResult(true);
@@ -84,7 +79,6 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
         setTargetValue(result.targetValue);
       }
 
-      // Déclencher confetti sur zone verte
       if (result.zone === 'green') {
         setTriggerConfetti(prev => prev + 1);
         haptic.success();
@@ -93,27 +87,24 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       } else {
         haptic.error();
       }
-    });
+    };
 
-    // Nouveau tour
-    socket.on('round-started', ({ room: updatedRoom }) => {
+    const handleRoundStarted = ({ room: updatedRoom }) => {
       setCurrentRoom(updatedRoom);
       setShowResult(false);
       setLastResult(null);
       setDialValue(10);
       setClueText('');
       setTargetValue(null);
-      setHasSubmitted(false); // Reset pour le nouveau tour
-      progressingRef.current = false; // Reset guard pour le prochain tour
-    });
+      setHasSubmitted(false);
+      progressingRef.current = false;
+    };
 
-    // Partie terminée
-    socket.on('game-finished', ({ room: updatedRoom }) => {
+    const handleGameFinished = ({ room: updatedRoom }) => {
       setCurrentRoom(updatedRoom);
-    });
+    };
 
-    // Partie réinitialisée
-    socket.on('game-reset', ({ room: updatedRoom }) => {
+    const handleGameReset = ({ room: updatedRoom }) => {
       setCurrentRoom(updatedRoom);
       setShowResult(false);
       setLastResult(null);
@@ -127,17 +118,27 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
-    });
+    };
+
+    socket.on('room-updated', handleRoomUpdated);
+    socket.on('game-started', handleGameStarted);
+    socket.on('target-revealed', handleTargetRevealed);
+    socket.on('clue-submitted', handleClueSubmitted);
+    socket.on('result-revealed', handleResultRevealed);
+    socket.on('round-started', handleRoundStarted);
+    socket.on('game-finished', handleGameFinished);
+    socket.on('game-reset', handleGameReset);
 
     return () => {
-      socket.off('room-updated');
-      socket.off('game-started');
-      socket.off('target-revealed');
-      socket.off('clue-submitted');
-      socket.off('result-revealed');
-      socket.off('round-started');
-      socket.off('game-finished');
-      socket.off('game-reset');
+      // Retirer uniquement les handlers de ce composant, pas ceux des autres
+      socket.off('room-updated', handleRoomUpdated);
+      socket.off('game-started', handleGameStarted);
+      socket.off('target-revealed', handleTargetRevealed);
+      socket.off('clue-submitted', handleClueSubmitted);
+      socket.off('result-revealed', handleResultRevealed);
+      socket.off('round-started', handleRoundStarted);
+      socket.off('game-finished', handleGameFinished);
+      socket.off('game-reset', handleGameReset);
     };
   }, [socket, isPsychic]);
 

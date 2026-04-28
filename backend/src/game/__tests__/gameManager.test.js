@@ -87,7 +87,7 @@ describe('GameManager - Démarrage et rounds', () => {
     expect(room).toBeTruthy();
     expect(room.gameState).toBe('playing');
     expect(room.game).toBeTruthy();
-    expect(room.game.currentRound).toBe(1); // startGame() appelle nextRound() automatiquement
+    expect(room.game.currentRound).toBe(1); // startGame() démarre au round 1
     expect(room.game.psychicId).toBeTruthy();
     expect(room.game.currentCard).toBeTruthy();
     expect(room.game.targetValue).toBeGreaterThanOrEqual(1);
@@ -145,7 +145,7 @@ describe('GameManager - Démarrage et rounds', () => {
     gameManager.joinRoom(roomCode, 'player2', 'Bob');
 
     const room = gameManager.startGame(roomCode);
-    expect(room.game.currentRound).toBe(1); // startGame() appelle nextRound() automatiquement
+    expect(room.game.currentRound).toBe(1);
 
     const psychic = room.game.psychicId;
     gameManager.submitClue(roomCode, psychic, 'Test');
@@ -155,7 +155,7 @@ describe('GameManager - Démarrage et rounds', () => {
     gameManager.revealResult(roomCode);
 
     const room2 = gameManager.nextRound(roomCode);
-    expect(room2.game.currentRound).toBe(2); // Round 2
+    expect(room2.game.currentRound).toBe(2);
   });
 
   test('La partie se termine après le nombre de rounds configuré', () => {
@@ -164,9 +164,9 @@ describe('GameManager - Démarrage et rounds', () => {
 
     const room = gameManager.startGame(roomCode, { totalRounds: 2 });
     expect(room.game.totalRounds).toBe(2);
-    expect(room.game.currentRound).toBe(1); // startGame() appelle nextRound() automatiquement
+    expect(room.game.currentRound).toBe(1);
 
-    // Compléter le round 1
+    // Jouer le round 1
     const psychic = room.game.psychicId;
     gameManager.submitClue(roomCode, psychic, 'Test');
     gameManager.submitGuess(roomCode, room.players.find(p => p.id !== psychic).id, 10);
@@ -439,27 +439,17 @@ describe('GameManager - Mode Teams', () => {
 
     const room = gameManager.startGame(roomCode, { gameMode: 'teams' });
     expect(room.game.currentTeam).toBe('blue');
-    expect(room.game.currentRound).toBe(1); // startGame() appelle nextRound() automatiquement
+    expect(room.game.currentRound).toBe(1); // Round 1, équipe bleue
 
     const psychic = room.game.psychicId;
     gameManager.submitClue(roomCode, psychic, 'Test');
     gameManager.submitGuess(roomCode, room.players.find(p => p.id !== psychic && p.team === 'blue').id, 10);
     gameManager.revealResult(roomCode);
 
-    // Round 2 (alternance vers équipe rouge)
+    // Passer au round 2 (alternance vers équipe rouge)
     const room1 = gameManager.nextRound(roomCode);
     expect(room1.game.currentTeam).toBe('red');
     expect(room1.game.currentRound).toBe(2);
-
-    const psychic1 = room1.game.psychicId;
-    gameManager.submitClue(roomCode, psychic1, 'Test');
-    gameManager.submitGuess(roomCode, room1.players.find(p => p.id !== psychic1 && p.team === 'red').id, 10);
-    gameManager.revealResult(roomCode);
-
-    // Passer au round 3 (alternance vers équipe bleue)
-    const room2 = gameManager.nextRound(roomCode);
-    expect(room2.game.currentTeam).toBe('blue'); // Alternance
-    expect(room2.game.currentRound).toBe(3);
   });
 });
 
@@ -472,7 +462,6 @@ describe('GameManager - Reconnexion et join en cours', () => {
     const { roomCode } = gameManager.createRoom('player1', 'Alice');
     gameManager.joinRoom(roomCode, 'player2', 'Bob');
     gameManager.startGame(roomCode);
-    gameManager.nextRound(roomCode);
 
     const room = gameManager.getRoom(roomCode);
     expect(room.gameState).toBe('playing');

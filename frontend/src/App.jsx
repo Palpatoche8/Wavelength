@@ -46,22 +46,26 @@ function App() {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('room-updated', (updatedRoom) => {
+    const handleRoomUpdated = (updatedRoom) => {
       setCurrentRoom(updatedRoom);
-    });
+    };
 
-    socket.on('game-started', ({ room }) => {
+    const handleGameStarted = ({ room }) => {
       setCurrentRoom(room);
-    });
+    };
 
-    socket.on('game-reset', ({ room }) => {
+    const handleGameReset = ({ room }) => {
       setCurrentRoom(room);
-    });
+    };
+
+    socket.on('room-updated', handleRoomUpdated);
+    socket.on('game-started', handleGameStarted);
+    socket.on('game-reset', handleGameReset);
 
     return () => {
-      socket.off('room-updated');
-      socket.off('game-started');
-      socket.off('game-reset');
+      socket.off('room-updated', handleRoomUpdated);
+      socket.off('game-started', handleGameStarted);
+      socket.off('game-reset', handleGameReset);
     };
   }, [socket]);
 
@@ -112,17 +116,6 @@ function App() {
 
     // Envoyer la notification au serveur
     socket.emit('leave-room', { roomCode });
-
-    // Nettoyer les listeners spécifiques au jeu en cours
-    socket.off('round-started');
-    socket.off('clue-submitted');
-    socket.off('result-revealed');
-    socket.off('game-finished');
-    socket.off('target-revealed');
-    socket.off('timer-tick');
-    socket.off('timer-expired');
-    socket.off('left-room');
-    socket.off('join-room-error');
 
     console.log('👋 Room quittée');
   };
