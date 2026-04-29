@@ -73,7 +73,7 @@ function HomePage({ onCreateRoom, onJoinRoom, isConnected }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.5 }}
           >
-            <h1 className="text-6xl font-black mb-3 bg-gradient-to-r from-white via-purple-100 to-white bg-clip-text text-transparent drop-shadow-2xl">
+            <h1 className="text-6xl font-black mb-3 pb-2 bg-gradient-to-r from-white via-purple-100 to-white bg-clip-text text-transparent drop-shadow-1xl">
               🌊 WaveLength
             </h1>
             <p className="text-white/90 text-lg font-medium drop-shadow-lg">
@@ -104,21 +104,19 @@ function HomePage({ onCreateRoom, onJoinRoom, isConnected }) {
           <div className="flex p-2 bg-black/10">
             <button
               onClick={() => setActiveTab('create')}
-              className={`flex-1 py-3 text-center font-semibold rounded-xl transition-all duration-300 ${
-                activeTab === 'create'
-                  ? 'bg-white text-purple-600 shadow-lg scale-105'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
+              className={`flex-1 py-3 text-center font-semibold rounded-xl transition-all duration-300 ${activeTab === 'create'
+                ? 'bg-white text-purple-600 shadow-lg scale-105'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
             >
               ✨ Créer
             </button>
             <button
               onClick={() => setActiveTab('join')}
-              className={`flex-1 py-3 text-center font-semibold rounded-xl transition-all duration-300 ${
-                activeTab === 'join'
-                  ? 'bg-white text-purple-600 shadow-lg scale-105'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
+              className={`flex-1 py-3 text-center font-semibold rounded-xl transition-all duration-300 ${activeTab === 'join'
+                ? 'bg-white text-purple-600 shadow-lg scale-105'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
             >
               🚪 Rejoindre
             </button>
@@ -169,11 +167,10 @@ function HomePage({ onCreateRoom, onJoinRoom, isConnected }) {
             <motion.button
               type="submit"
               disabled={!isConnected}
-              className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all shadow-xl ${
-                isConnected
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-purple-500/50'
-                  : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              }`}
+              className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all shadow-xl ${isConnected
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-purple-500/50'
+                : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                }`}
               whileHover={isConnected ? { scale: 1.02, y: -2 } : {}}
               whileTap={isConnected ? { scale: 0.98 } : {}}
             >
