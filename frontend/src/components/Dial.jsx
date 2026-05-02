@@ -112,9 +112,9 @@ function Dial({
     <div className="flex flex-col items-center">
       {/* Cadran avec effets */}
       <div className="relative">
-        {/* Lueur de fond */}
-        <div className="absolute inset-0 blur-2xl opacity-30">
-          <div className="w-80 h-40 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500"></div>
+        {/* Lueur de fond adoucie */}
+        <div className="absolute inset-0 blur-2xl opacity-15">
+          <div className="w-80 h-40 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400"></div>
         </div>
 
         <div
@@ -137,13 +137,13 @@ function Dial({
                   <stop offset="100%" style={{stopColor: '#f9fafb', stopOpacity: 1}} />
                 </linearGradient>
 
-                {/* Dégradé arc-en-ciel pour le fond */}
+                {/* Dégradé arc-en-ciel pour le fond (adouci) */}
                 <linearGradient id="rainbowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" style={{stopColor: '#a78bfa', stopOpacity: 0.3}} />
-                  <stop offset="25%" style={{stopColor: '#ec4899', stopOpacity: 0.3}} />
-                  <stop offset="50%" style={{stopColor: '#f59e0b', stopOpacity: 0.3}} />
-                  <stop offset="75%" style={{stopColor: '#10b981', stopOpacity: 0.3}} />
-                  <stop offset="100%" style={{stopColor: '#3b82f6', stopOpacity: 0.3}} />
+                  <stop offset="0%" style={{stopColor: '#a78bfa', stopOpacity: 0.15}} />
+                  <stop offset="25%" style={{stopColor: '#ec4899', stopOpacity: 0.15}} />
+                  <stop offset="50%" style={{stopColor: '#f59e0b', stopOpacity: 0.15}} />
+                  <stop offset="75%" style={{stopColor: '#10b981', stopOpacity: 0.15}} />
+                  <stop offset="100%" style={{stopColor: '#3b82f6', stopOpacity: 0.15}} />
                 </linearGradient>
 
                 {/* Filtre pour ombre portée */}
@@ -208,9 +208,9 @@ function Dial({
                     return (
                       <path
                         d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-                        fill="rgba(249, 115, 22, 0.4)"
-                        stroke="rgba(249, 115, 22, 0.6)"
-                        strokeWidth="2"
+                        fill="rgba(249, 115, 22, 0.65)"
+                        stroke="rgba(249, 115, 22, 0.85)"
+                        strokeWidth="3"
                       />
                     );
                   })()}
@@ -233,9 +233,9 @@ function Dial({
                     return (
                       <path
                         d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`}
-                        fill="rgba(234, 179, 8, 0.5)"
-                        stroke="rgba(234, 179, 8, 0.7)"
-                        strokeWidth="2"
+                        fill="rgba(234, 179, 8, 0.7)"
+                        stroke="rgba(234, 179, 8, 0.9)"
+                        strokeWidth="3"
                       />
                     );
                   })()}
@@ -257,9 +257,9 @@ function Dial({
                     return (
                       <path
                         d={`M 192 192 L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`}
-                        fill="rgba(34, 197, 94, 0.6)"
-                        stroke="rgba(34, 197, 94, 0.8)"
-                        strokeWidth="2"
+                        fill="rgba(34, 197, 94, 0.8)"
+                        stroke="rgba(34, 197, 94, 1)"
+                        strokeWidth="3"
                       />
                     );
                   })()}
@@ -410,21 +410,6 @@ function Dial({
             )}
           </motion.div>
 
-          {/* Point central brillant */}
-          <motion.div
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full shadow-xl z-10"
-            style={{
-              background: 'radial-gradient(circle at 30% 30%, #fca5a5, #ef4444, #991b1b)',
-            }}
-            animate={{
-              boxShadow: isDragging
-                ? '0 0 20px rgba(239, 68, 68, 0.8)'
-                : '0 4px 12px rgba(239, 68, 68, 0.5)'
-            }}
-          >
-            {/* Reflet sur le point central */}
-            <div className="absolute top-1 left-1 w-3 h-3 bg-white/60 rounded-full blur-sm" />
-          </motion.div>
         </div>
       </div>
 
