@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Dial from './Dial';
 import Timer from './ui/Timer';
 import ProgressBar from './ui/ProgressBar';
@@ -415,20 +416,35 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-2">
+    <div className="min-h-screen relative overflow-hidden p-2">
+      {/* Fond dégradé animé */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjA1IiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-50"></div>
+        <motion.div
+          className="absolute top-20 right-20 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl"
+          animate={{ x: [0, 50, 0], y: [0, -30, 0] }}
+          transition={{ duration: 20, repeat: Infinity }}
+        />
+        <motion.div
+          className="absolute bottom-20 left-20 w-80 h-80 bg-pink-400/20 rounded-full blur-3xl"
+          animate={{ x: [0, -40, 0], y: [0, 40, 0] }}
+          transition={{ duration: 25, repeat: Infinity }}
+        />
+      </div>
+
       {/* Confetti effect sur zone verte */}
       <ConfettiEffect trigger={triggerConfetti} />
 
-      <div className="max-w-6xl mx-auto">
-        {/* En-tête */}
-        <div className="bg-white rounded-lg shadow-lg p-2 mb-3">
+      <div className="max-w-6xl mx-auto relative z-10">
+        {/* En-tête amélioré */}
+        <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-3 mb-3 border border-white/20">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h2 className="text-lg font-bold text-gray-800">
-                 WaveLength
+              <h2 className="text-2xl font-black text-white drop-shadow-lg">
+                🌊 WaveLength
               </h2>
-              <p className="text-xs text-gray-600">
-                Room: <span className="font-mono font-bold">{currentRoom.code}</span>
+              <p className="text-sm font-semibold text-white/80">
+                Room: <span className="font-mono font-bold bg-white/20 px-2 py-0.5 rounded">{currentRoom.code}</span>
               </p>
             </div>
 
@@ -451,19 +467,21 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
               </div>
             )}
 
-            <button
+            <motion.button
               onClick={onLeaveRoom}
-              className="px-3 py-1 text-sm bg-gray-300 hover:bg-gray-400 rounded-lg transition"
+              className="px-4 py-2 text-sm font-bold bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition border border-white/30 text-white"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-               Quitter
-            </button>
+              ← Quitter
+            </motion.button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Colonne gauche - Joueurs et scores */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-3 mb-3">
+            <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-3 mb-3 border border-white/20">
               {isTeamsMode ? (
                 <>
                   <h3 className="text-sm font-semibold mb-2">🎯 Équipes</h3>
@@ -587,9 +605,9 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
           <div className="lg:col-span-2">
             {/* Carte actuelle - SEULEMENT le texte, pas de spectre */}
             {game?.currentCard && (
-              <div className="bg-white rounded-lg shadow-lg p-3 mb-3">
-                <h3 className="text-center text-sm font-semibold text-gray-700 mb-2">
-                  Thème
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-3 mb-3 border border-white/20">
+                <h3 className="text-center text-sm font-bold text-white mb-2">
+                  🎯 Thème
                 </h3>
                 <div className="flex justify-between items-center gap-2">
                   <div className="flex-1 text-center">
@@ -651,7 +669,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
 
             {/* Cadran */}
             {!showResult && (
-              <div className="bg-white rounded-lg shadow-lg p-2 mb-3">
+              <div className="bg-white/5 backdrop-blur-lg rounded-2xl shadow-2xl p-4 mb-3 border border-white/10">
                 <Dial
                   value={dialValue}
                   onValueChange={setDialValue}

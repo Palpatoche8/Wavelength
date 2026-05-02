@@ -348,18 +348,46 @@ class GameManager {
 
     // Calculer totalRounds : utiliser settings.totalRounds si défini, sinon 2 * nb joueurs
     const totalRounds = room.settings.totalRounds || (room.players.length * 2);
-    // Initialiser le jeu
 
+    // Choisir le premier psychique
+    let firstPsychicIndex;
+    let firstPsychicId;
 
+    if (room.settings.gameMode === 'teams') {
+      // Mode teams : équipe bleue commence
+      const blueTeamPlayers = room.players.filter(p => p.team === 'blue');
+      const randomBluePlayer = blueTeamPlayers[Math.floor(Math.random() * blueTeamPlayers.length)];
+      firstPsychicId = randomBluePlayer.id;
+      firstPsychicIndex = room.players.findIndex(p => p.id === firstPsychicId);
+    } else {
+      // Mode FFA : psychique aléatoire
+      firstPsychicIndex = Math.floor(Math.random() * room.players.length);
+      firstPsychicId = room.players[firstPsychicIndex].id;
+    }
+
+    // Tirer la première carte
+    const firstCard = deck[0];
+
+    // Générer la première cible (distribution gaussienne)
+    const generateTargetValue = () => {
+      const u1 = Math.random();
+      const u2 = Math.random();
+      const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      let value = Math.round(10.5 + z0 * 5);
+      return Math.max(1, Math.min(20, value));
+    };
+    const firstTarget = generateTargetValue();
+
+    // Initialiser le jeu avec le round 1 configuré
     room.gameState = 'playing';
     room.game = {
       deck: deck,
-      currentCardIndex: -1, // Sera incrémenté à 0 par nextRound()
-      currentCard: null, // Sera défini par nextRound()
-      targetValue: null, // Sera défini par nextRound()
-      psychicIndex: null, // Sera défini par nextRound()
-      psychicId: null, // Sera défini par nextRound()
-      currentRound: -1, // Sera incrémenté à 1 par nextRound()
+      currentCardIndex: 0,
+      currentCard: firstCard,
+      targetValue: firstTarget,
+      psychicIndex: firstPsychicIndex,
+      psychicId: firstPsychicId,
+      currentRound: 1, // Premier round
       totalRounds: totalRounds,
       guesses: [],
       clue: null,
@@ -372,9 +400,14 @@ class GameManager {
 
     console.log(`🎮 Partie créée dans ${roomCode}`);
     console.log(`   Paramètres: timer=${room.settings.timerEnabled}, difficulté=${room.settings.difficulty}, tours=${totalRounds}`);
+    console.log(`▶️ Tour ${room.game.currentRound}/${totalRounds} dans ${roomCode}`);
+    console.log(`   Psychique: ${room.players[firstPsychicIndex].name}`);
+    console.log(`   Carte: ${firstCard.left} ↔ ${firstCard.right}`);
 
-    // Lancer le premier round via nextRound()
-    return this.nextRound(roomCode);
+    // Valider la cohérence du jeu
+    this.validateGameState(roomCode);
+
+    return room;
   }
 
   /**
