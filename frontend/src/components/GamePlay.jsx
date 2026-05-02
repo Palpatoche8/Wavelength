@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Dial from './Dial';
 import Timer from './ui/Timer';
 import ProgressBar from './ui/ProgressBar';
