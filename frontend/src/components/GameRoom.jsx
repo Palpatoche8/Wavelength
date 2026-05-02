@@ -287,6 +287,53 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                           </select>
                         </div>
 
+                        {/* Nombre de tours */}
+                        <div>
+                          <label className="block font-bold text-white mb-2">
+                            🔢 Nombre de tours
+                          </label>
+                          <div className="flex gap-2">
+                            <select
+                              value={currentRoom.settings.totalRounds || 'auto'}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                handleUpdateSettings({
+                                  ...currentRoom.settings,
+                                  totalRounds: value === 'auto' ? null : (value === 'custom' ? 10 : parseInt(value))
+                                });
+                              }}
+                              className="flex-1 px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white font-semibold backdrop-blur-sm focus:ring-2 focus:ring-purple-400 outline-none"
+                            >
+                              <option value="auto" className="text-gray-900">Auto (2×joueurs)</option>
+                              <option value="5" className="text-gray-900">5 tours</option>
+                              <option value="10" className="text-gray-900">10 tours</option>
+                              <option value="15" className="text-gray-900">15 tours</option>
+                              <option value="custom" className="text-gray-900">Personnalisé</option>
+                            </select>
+                            {currentRoom.settings.totalRounds !== null &&
+                             currentRoom.settings.totalRounds !== 5 &&
+                             currentRoom.settings.totalRounds !== 10 &&
+                             currentRoom.settings.totalRounds !== 15 && (
+                              <input
+                                type="number"
+                                min="1"
+                                max="50"
+                                value={currentRoom.settings.totalRounds}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value);
+                                  if (value >= 1 && value <= 50) {
+                                    handleUpdateSettings({
+                                      ...currentRoom.settings,
+                                      totalRounds: value
+                                    });
+                                  }
+                                }}
+                                className="w-20 px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white font-semibold backdrop-blur-sm text-center focus:ring-2 focus:ring-purple-400 outline-none"
+                              />
+                            )}
+                          </div>
+                        </div>
+
                         {/* Timer */}
                         <div>
                           <label className="flex items-center justify-between mb-2">
