@@ -73,8 +73,9 @@ function HomePage({ onCreateRoom, onJoinRoom, isConnected }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.5 }}
           >
+
             <h1 className="text-6xl font-black mb-3 pb-2 bg-gradient-to-r from-white via-purple-100 to-white bg-clip-text text-transparent drop-shadow-1xl">
-              🌊 WaveLength
+              WaveLength
             </h1>
             <p className="text-white/90 text-lg font-medium drop-shadow-lg">
               Jeu multijoueur de devinettes par équipes
@@ -84,7 +85,7 @@ function HomePage({ onCreateRoom, onJoinRoom, isConnected }) {
           {/* Bouton Help amélioré */}
           <motion.button
             onClick={() => setShowHelp(true)}
-            className="absolute top-0 right-0 w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-full shadow-2xl border border-white/30 transition-all"
+            className="absolute top-0 -right-6 w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-md hover:bg-white/30 text-white rounded-full shadow-2xl border border-white/30 transition-all"
             whileHover={{ scale: 1.1, rotate: 15 }}
             whileTap={{ scale: 0.95 }}
             aria-label="Aide"

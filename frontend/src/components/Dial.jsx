@@ -178,15 +178,6 @@ function Dial({
                 filter="url(#shadow)"
               />
 
-              {/* Reflet brillant sur l'arc */}
-              <path
-                d="M 40 192 A 168 168 0 0 1 344 192"
-                fill="none"
-                stroke="rgba(255, 255, 255, 0.5)"
-                strokeWidth="6"
-                strokeLinecap="round"
-              />
-
               {/* Zones colorées pour le psychique */}
               {showColoredZones && targetValue !== null && (
                 <>

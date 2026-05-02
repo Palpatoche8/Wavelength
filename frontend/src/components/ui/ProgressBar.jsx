@@ -11,7 +11,7 @@ function ProgressBar({ currentRound, totalRounds }) {
     <div className="w-full max-w-md mx-auto">
       {/* Label avec Round X / Y */}
       <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-black-1500">
           Tour {currentRound} / {totalRounds}
         </span>
       </div>
