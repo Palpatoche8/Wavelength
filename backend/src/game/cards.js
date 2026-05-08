@@ -50,28 +50,27 @@ export const CARDS = [
   { id: 44, left: "Fait inconnu", right: "Fait extremement connu" },
   { id: 45, left: "Mot très moche", right: "Mot très beau" },
   { id: 46, left: "Horrible de dormir dessus", right: "Incroyable de dormir dessus" },
-  { id: 47, left: "Jamais à l'heure", right: "Toujours à l'heure" },
+  { id: 47, left: "Pire instrument de musique", right: "Meilleur instrument de musique" },
   { id: 48, left: "Personnage fictif détesté", right: "Personnage fictif adoré" },
   { id: 49, left: "Personne qui me détruirait", right: "Personne que je détruis" },
-  { id: 50, left: "Pire couleur de chaussure", right: "Meilleure couleur de chaussure" },
+  { id: 50, left: "On vit mieux sans", right: "On vit mieux avec" },
   { id: 51, left: "Meilleur froid", right: "Meilleure chaud" },
   { id: 52, left: "Pire cadeau à un enfant", right: "Meilleur cadeau à un enfant" },
   { id: 53, left: "Pire Livre", right: "Meilleur Livre" },
   { id: 54, left: "Pire Anime", right: "Meilleur Anime" },
-
-
-
-
-
+  { id: 55, left: "Meilleur Seul", right: "Meilleur à plusieurs" },
+  { id: 56, left: "Pire Casse-Croûte", right: "Meilleur Casse-Croûte" },
+  { id: 57, left: "Pire Parfum de Glace ", right: "Meilleur Parfum de Glace " },
+  { id: 58, left: "Pire Animal de compagnie", right: "Meilleure Animal de compagnie" },
+  { id: 59, left: "Meilleur en Hiver", right: "Meilleur en été" },
+  { id: 60, left: "Pire Rôle au Loup-Garou", right: "Meilleur Rôle au Loup-Garou" },
 
 
 
 
 ];
 
-/**
- * Mélange un tableau (algorithme Fisher-Yates)
- */
+
 function shuffleArray(array) {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -81,9 +80,7 @@ function shuffleArray(array) {
   return shuffled;
 }
 
-/**
- * Tire une carte aléatoire
- */
+
 export function drawRandomCard() {
   const randomIndex = Math.floor(Math.random() * CARDS.length);
   return CARDS[randomIndex];
@@ -95,11 +92,9 @@ export function drawRandomCard() {
  * @returns {Array} Deck mélangé
  */
 export function createShuffledDeck(customCards = []) {
-  // Fusionner cartes officielles + custom
   const allCards = [...CARDS];
 
   if (customCards && customCards.length > 0) {
-    // Ajouter les cartes custom avec IDs uniques
     const customWithIds = customCards.map((card, index) => ({
       id: `custom_${card.id || index}`,
       left: card.left,
