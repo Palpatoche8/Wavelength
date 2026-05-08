@@ -375,13 +375,11 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                                 max="50"
                                 value={currentRoom.settings.totalRounds}
                                 onChange={(e) => {
-                                  const value = parseInt(e.target.value);
-                                  if (value >= 1 && value <= 50) {
-                                    handleUpdateSettings({
-                                      ...currentRoom.settings,
-                                      totalRounds: value
-                                    });
-                                  }
+                                  const value = parseInt(e.target.value) || 1;
+                                  handleUpdateSettings({
+                                    ...currentRoom.settings,
+                                    totalRounds: Math.max(1, Math.min(50, value))
+                                  });
                                 }}
                                 className="w-20 px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white font-semibold backdrop-blur-sm text-center focus:ring-2 focus:ring-purple-400 outline-none"
                               />
