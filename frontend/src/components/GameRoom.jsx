@@ -343,12 +343,18 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                           </label>
                           <div className="flex gap-2">
                             <select
-                              value={currentRoom.settings.totalRounds || 'auto'}
+                              value={
+                                currentRoom.settings.totalRounds === null ? 'auto' :
+                                currentRoom.settings.totalRounds === 5 ? '5' :
+                                currentRoom.settings.totalRounds === 10 ? '10' :
+                                currentRoom.settings.totalRounds === 15 ? '15' :
+                                'custom'
+                              }
                               onChange={(e) => {
                                 const value = e.target.value;
                                 handleUpdateSettings({
                                   ...currentRoom.settings,
-                                  totalRounds: value === 'auto' ? null : (value === 'custom' ? 10 : parseInt(value))
+                                  totalRounds: value === 'auto' ? null : (value === 'custom' ? 6 : parseInt(value))
                                 });
                               }}
                               className="flex-1 px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white font-semibold backdrop-blur-sm focus:ring-2 focus:ring-purple-400 outline-none"
