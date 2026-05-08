@@ -92,15 +92,17 @@ export function drawRandomCard() {
 /**
  * Crée un deck mélangé de toutes les cartes
  * @param {Array} customCards - Cartes personnalisées optionnelles
+ * @param {boolean} guaranteeCustomCard - Si true, garantit qu'au moins une carte custom est en première position
  * @returns {Array} Deck mélangé
  */
-export function createShuffledDeck(customCards = []) {
+export function createShuffledDeck(customCards = [], guaranteeCustomCard = false) {
   // Fusionner cartes officielles + custom
   const allCards = [...CARDS];
+  let customWithIds = [];
 
   if (customCards && customCards.length > 0) {
     // Ajouter les cartes custom avec IDs uniques
-    const customWithIds = customCards.map((card, index) => ({
+    customWithIds = customCards.map((card, index) => ({
       id: `custom_${card.id || index}`,
       left: card.left,
       right: card.right,
@@ -109,5 +111,18 @@ export function createShuffledDeck(customCards = []) {
     allCards.push(...customWithIds);
   }
 
-  return shuffleArray(allCards);
+  const shuffled = shuffleArray(allCards);
+
+  // Si demandé, garantir qu'au moins une carte custom est en première position
+  if (guaranteeCustomCard && customWithIds.length > 0) {
+    // Trouver une carte custom dans le deck mélangé
+    const customCardIndex = shuffled.findIndex(card => card.isCustom);
+
+    if (customCardIndex > 0) {
+      // Échanger la première carte avec une carte custom
+      [shuffled[0], shuffled[customCardIndex]] = [shuffled[customCardIndex], shuffled[0]];
+    }
+  }
+
+  return shuffled;
 }

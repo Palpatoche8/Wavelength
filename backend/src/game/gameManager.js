@@ -341,7 +341,8 @@ class GameManager {
       ? customCardsManager.getCards(roomCode)
       : [];
 
-    const deck = createShuffledDeck(customCards);
+    // Garantir qu'au moins une carte custom est jouée si l'option est activée
+    const deck = createShuffledDeck(customCards, room.settings.customCardsEnabled && customCards.length > 0);
 
     // Choisir psychique aléatoire au démarrage
     const randomPsychicIndex = Math.floor(Math.random() * room.players.length);
