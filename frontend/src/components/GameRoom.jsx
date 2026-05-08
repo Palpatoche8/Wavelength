@@ -11,6 +11,9 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
   const [copiedCode, setCopiedCode] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [customCards, setCustomCards] = useState([]);
+  const [newCardLeft, setNewCardLeft] = useState('');
+  const [newCardRight, setNewCardRight] = useState('');
 
   // Écouter les mises à jour de la room
   useEffect(() => {
@@ -55,6 +58,27 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
     };
   }, [socket]);
 
+  // Écouter les événements de cartes personnalisées
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleCustomCardAdded = ({ card }) => {
+      setCustomCards(prev => [...prev, card]);
+    };
+
+    const handleCustomCardRemoved = ({ cardId }) => {
+      setCustomCards(prev => prev.filter(c => c.id !== cardId));
+    };
+
+    socket.on('custom-card-added', handleCustomCardAdded);
+    socket.on('custom-card-removed', handleCustomCardRemoved);
+
+    return () => {
+      socket.off('custom-card-added', handleCustomCardAdded);
+      socket.off('custom-card-removed', handleCustomCardRemoved);
+    };
+  }, [socket]);
+
   // Copier le code de la room
   const handleCopyCode = () => {
     navigator.clipboard.writeText(currentRoom.code);
@@ -75,6 +99,31 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
     socket.emit('update-settings', {
       roomCode: currentRoom.code,
       settings: newSettings
+    });
+  };
+
+  const handleAddCustomCard = () => {
+    if (!newCardLeft.trim() || !newCardRight.trim()) {
+      alert('Veuillez remplir les deux champs');
+      return;
+    }
+
+    socket.emit('add-custom-card', {
+      roomCode: currentRoom.code,
+      card: {
+        left: newCardLeft.trim(),
+        right: newCardRight.trim()
+      }
+    });
+
+    setNewCardLeft('');
+    setNewCardRight('');
+  };
+
+  const handleRemoveCustomCard = (cardId) => {
+    socket.emit('remove-custom-card', {
+      roomCode: currentRoom.code,
+      cardId
     });
   };
 
@@ -370,6 +419,96 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
                               className="w-5 h-5 rounded"
                             />
                           </label>
+                        </div>
+
+                        {/* Cartes personnalisées */}
+                        <div className="border-t border-white/20 pt-4">
+                          <label className="flex items-center justify-between mb-3">
+                            <span className="font-bold text-white">✨ Thèmes personnalisés</span>
+                            <input
+                              type="checkbox"
+                              checked={currentRoom.settings.customCardsEnabled || false}
+                              onChange={(e) => {
+                                handleUpdateSettings({
+                                  ...currentRoom.settings,
+                                  customCardsEnabled: e.target.checked
+                                });
+                              }}
+                              className="w-5 h-5 rounded"
+                            />
+                          </label>
+
+                          {currentRoom.settings.customCardsEnabled && (
+                            <div className="space-y-3 mt-3">
+                              {/* Formulaire d'ajout */}
+                              <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                                <p className="text-xs text-white/70 mb-2">Ajouter un nouveau thème :</p>
+                                <div className="space-y-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Extrême gauche (ex: Pire chanson)"
+                                    value={newCardLeft}
+                                    onChange={(e) => setNewCardLeft(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white text-sm placeholder:text-white/40 backdrop-blur-sm focus:ring-2 focus:ring-purple-400 outline-none"
+                                    maxLength={50}
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Extrême droite (ex: Meilleure chanson)"
+                                    value={newCardRight}
+                                    onChange={(e) => setNewCardRight(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white text-sm placeholder:text-white/40 backdrop-blur-sm focus:ring-2 focus:ring-purple-400 outline-none"
+                                    maxLength={50}
+                                  />
+                                  <motion.button
+                                    onClick={handleAddCustomCard}
+                                    className="w-full py-2 px-4 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-semibold text-sm transition"
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                  >
+                                    ➕ Ajouter
+                                  </motion.button>
+                                </div>
+                              </div>
+
+                              {/* Liste des cartes personnalisées */}
+                              {customCards.length > 0 && (
+                                <div className="bg-white/5 p-3 rounded-lg border border-white/10 max-h-48 overflow-y-auto">
+                                  <p className="text-xs text-white/70 mb-2">Thèmes créés ({customCards.length}) :</p>
+                                  <div className="space-y-2">
+                                    {customCards.map((card) => (
+                                      <div
+                                        key={card.id}
+                                        className="flex items-center justify-between bg-white/5 p-2 rounded border border-white/10"
+                                      >
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs text-white/90 truncate">
+                                            <span className="font-semibold">{card.left}</span>
+                                            <span className="text-white/50 mx-2">↔</span>
+                                            <span className="font-semibold">{card.right}</span>
+                                          </p>
+                                        </div>
+                                        <motion.button
+                                          onClick={() => handleRemoveCustomCard(card.id)}
+                                          className="ml-2 px-2 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded text-xs font-bold transition"
+                                          whileHover={{ scale: 1.1 }}
+                                          whileTap={{ scale: 0.9 }}
+                                        >
+                                          ✕
+                                        </motion.button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {customCards.length === 0 && (
+                                <p className="text-xs text-white/50 text-center italic">
+                                  Aucun thème personnalisé pour l'instant
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </motion.div>
