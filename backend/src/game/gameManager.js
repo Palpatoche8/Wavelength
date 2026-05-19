@@ -341,7 +341,7 @@ class GameManager {
       ? customCardsManager.getCards(roomCode)
       : [];
 
-    // Garantir qu'au moins une carte custom est jouée si l'option est activée
+    // Prioriser les cartes custom si l'option est activée (elles apparaissent toutes en premier)
     const deck = createShuffledDeck(customCards, room.settings.customCardsEnabled && customCards.length > 0);
 
     // Choisir psychique aléatoire au démarrage
@@ -759,6 +759,100 @@ class GameManager {
     room.gameState = 'playing';
 
     console.log(`▶️ Tour ${game.currentRound}/${game.totalRounds} dans ${roomCode}`);
+    console.log(`   Psychique: ${room.players[game.psychicIndex].name}`);
+    console.log(`   Carte: ${game.currentCard.left} ↔ ${game.currentCard.right}`);
+
+    // Démarrer le timer du psychique pour le nouveau round si activé
+    if (room.settings.timerEnabled) {
+      this.startRoundTimer(roomCode, 'psychic');
+    }
+
+    room.game.isTransitioning = false;
+
+    // Valider la cohérence du jeu (debug)
+    this.validateGameState(roomCode);
+
+    return room;
+  }
+
+  /**
+   * Passe au tour suivant avec le même thème/carte
+   * @param {string} roomCode - Code de la room
+   * @returns {Object|null} Room mise à jour
+   */
+  nextRoundSameCard(roomCode) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room || !room.game) {
+      return null;
+    }
+
+    if (room.game.isTransitioning) {
+      console.log(`⚠️ Transition déjà en cours pour ${roomCode}`);
+      return room;
+    }
+
+    room.game.isTransitioning = true;
+
+    const game = room.game;
+
+    // Arrêter le timer du round précédent
+    timerManager.stopTimer(roomCode);
+
+    // Incrémenter le round
+    game.currentRound++;
+
+    // Vérifier si la partie est terminée
+    if (game.currentRound > game.totalRounds) {
+      room.gameState = 'finished';
+      console.log(`🏁 Partie terminée dans ${roomCode}`);
+      return room;
+    }
+
+    // Choisir le prochain psychique
+    if (room.settings.gameMode === 'teams') {
+      // Mode par équipe : alterner l'équipe qui joue
+      if (game.currentRound > 1) {
+        game.currentTeam = game.currentTeam === 'blue' ? 'red' : 'blue';
+      }
+
+      // Choisir un psychique de l'équipe qui joue
+      const teamPlayers = room.players.filter(p => p.team === game.currentTeam);
+      const randomTeamPlayerIndex = Math.floor(Math.random() * teamPlayers.length);
+      const psychic = teamPlayers[randomTeamPlayerIndex];
+
+      game.psychicId = psychic.id;
+      game.psychicIndex = room.players.findIndex(p => p.id === psychic.id);
+
+      console.log(`   Équipe ${game.currentTeam} joue`);
+    } else {
+      // Mode chacun pour soi : rotation normale
+      game.psychicIndex = (game.psychicIndex + 1) % room.players.length;
+      game.psychicId = room.players[game.psychicIndex].id;
+    }
+
+    // GARDER LA MÊME CARTE (pas d'incrémentation de currentCardIndex)
+    // game.currentCard reste inchangé
+
+    // Nouvelle cible aléatoire (1-20) avec distribution gaussienne
+    const generateTargetValue = () => {
+      const u1 = Math.random();
+      const u2 = Math.random();
+      const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      let value = Math.round(10.5 + z0 * 5);
+      return Math.max(1, Math.min(20, value));
+    };
+    game.targetValue = generateTargetValue();
+
+    // Réinitialiser l'état du tour
+    game.guesses = [];
+    game.clue = null;
+    game.lastResult = null;
+    game.timerExpired = false;
+
+    room.gameState = 'playing';
+
+    console.log(`▶️ Tour ${game.currentRound}/${game.totalRounds} dans ${roomCode} (MÊME THÈME)`);
     console.log(`   Psychique: ${room.players[game.psychicIndex].name}`);
     console.log(`   Carte: ${game.currentCard.left} ↔ ${game.currentCard.right}`);
 

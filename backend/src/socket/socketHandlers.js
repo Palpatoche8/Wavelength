@@ -314,6 +314,65 @@ export function setupSocketHandlers(io) {
       }
     });
 
+    // Passer au tour suivant avec le même thème
+    socket.on('next-round-same-card', ({ roomCode }) => {
+      console.log(`🔄 Passage au tour suivant (même thème) dans ${roomCode}`);
+
+      const room = gameManager.nextRoundSameCard(roomCode);
+
+      if (!room) {
+        socket.emit('next-round-error', {
+          success: false,
+          message: 'Erreur lors du passage au tour suivant'
+        });
+        return;
+      }
+
+      if (room.gameState === 'finished') {
+        // La partie est terminée
+        io.to(roomCode).emit('game-finished', {
+          success: true,
+          room
+        });
+      } else {
+        // Nouveau tour avec même thème
+        io.to(roomCode).emit('round-started', {
+          success: true,
+          room
+        });
+
+        // Envoyer la nouvelle cible au nouveau psychique
+        const psychicSocket = io.sockets.sockets.get(room.game.psychicId);
+        if (psychicSocket) {
+          psychicSocket.emit('target-revealed', {
+            targetValue: room.game.targetValue
+          });
+          console.log(`🎯 Cible ${room.game.targetValue} envoyée au psychique ${room.game.psychicId}`);
+        } else {
+          console.warn(`⚠️ Socket psychique ${room.game.psychicId} introuvable`);
+        }
+
+        // Si le timer est activé, démarrer avec callbacks tick et expire
+        if (room.settings.timerEnabled && room.settings.timerDuration) {
+          const onTick = (remainingTime) => {
+            io.to(roomCode).emit('timer-tick', {
+              remainingTime,
+              roomCode
+            });
+          };
+
+          const onExpire = (roomCode) => {
+            io.to(roomCode).emit('timer-expired', {
+              roomCode,
+              room: gameManager.getRoom(roomCode)
+            });
+          };
+
+          gameManager.startRoundTimer(roomCode, onTick, onExpire);
+        }
+      }
+    });
+
     // Rejouer (réinitialiser la partie)
     socket.on('reset-game', ({ roomCode }) => {
       console.log(`🔄 Réinitialisation de la partie dans ${roomCode}`);

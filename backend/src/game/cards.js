@@ -92,13 +92,12 @@ export function drawRandomCard() {
 /**
  * Crée un deck mélangé de toutes les cartes
  * @param {Array} customCards - Cartes personnalisées optionnelles
- * @param {boolean} guaranteeCustomCard - Si true, garantit qu'au moins une carte custom est en première position
+ * @param {boolean} prioritizeCustomCards - Si true, place toutes les cartes custom au début
  * @returns {Array} Deck mélangé
  */
-export function createShuffledDeck(customCards = [], guaranteeCustomCard = false) {
-  // Fusionner cartes officielles + custom
-  const allCards = [...CARDS];
+export function createShuffledDeck(customCards = [], prioritizeCustomCards = false) {
   let customWithIds = [];
+  const standardCards = [...CARDS];
 
   if (customCards && customCards.length > 0) {
     // Ajouter les cartes custom avec IDs uniques
@@ -108,21 +107,19 @@ export function createShuffledDeck(customCards = [], guaranteeCustomCard = false
       right: card.right,
       isCustom: true
     }));
-    allCards.push(...customWithIds);
   }
 
-  const shuffled = shuffleArray(allCards);
-
-  // Si demandé, garantir qu'au moins une carte custom est en première position
-  if (guaranteeCustomCard && customWithIds.length > 0) {
-    // Trouver une carte custom dans le deck mélangé
-    const customCardIndex = shuffled.findIndex(card => card.isCustom);
-
-    if (customCardIndex > 0) {
-      // Échanger la première carte avec une carte custom
-      [shuffled[0], shuffled[customCardIndex]] = [shuffled[customCardIndex], shuffled[0]];
-    }
+  // Si on veut prioriser les cartes custom, les mettre au début
+  if (prioritizeCustomCards && customWithIds.length > 0) {
+    // Mélanger les cartes custom entre elles
+    const shuffledCustom = shuffleArray(customWithIds);
+    // Mélanger les cartes standard
+    const shuffledStandard = shuffleArray(standardCards);
+    // Retourner custom d'abord, puis standard
+    return [...shuffledCustom, ...shuffledStandard];
+  } else {
+    // Comportement normal : mélanger tout ensemble
+    const allCards = [...standardCards, ...customWithIds];
+    return shuffleArray(allCards);
   }
-
-  return shuffled;
 }

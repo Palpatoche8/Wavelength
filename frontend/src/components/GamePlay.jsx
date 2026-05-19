@@ -172,6 +172,13 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
     });
   };
 
+  // Passer au tour suivant avec le même thème
+  const handleNextRoundSameCard = () => {
+    socket.emit('next-round-same-card', {
+      roomCode: currentRoom.code
+    });
+  };
+
   // Auto-progression après 6 secondes en mode scoring (avec compte à rebours)
   useEffect(() => {
     const autoProgress = currentRoom?.settings?.autoProgressRounds !== false;
@@ -825,15 +832,25 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
                   </div>
                 ) : (
                   <>
-                    {/* Bouton suivant (hôte uniquement en mode manuel) */}
+                    {/* Boutons suivant (hôte uniquement en mode manuel) */}
                     {currentPlayer?.isHost && (
-                      <div className="mt-3 text-center">
-                        <button
-                          onClick={handleNextRound}
-                          className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold text-base hover:from-indigo-700 hover:to-purple-700 transition shadow-lg"
+                      <div className="mt-3 flex gap-3 justify-center">
+                        <motion.button
+                          onClick={handleNextRoundSameCard}
+                          className="flex-1 max-w-xs px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-base hover:from-purple-700 hover:to-pink-700 transition shadow-lg"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                         >
-                          ▶ Tour suivant
-                        </button>
+                          🔄 Même thème
+                        </motion.button>
+                        <motion.button
+                          onClick={handleNextRound}
+                          className="flex-1 max-w-xs px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold text-base hover:from-indigo-700 hover:to-purple-700 transition shadow-lg"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          ▶ Thème suivant
+                        </motion.button>
                       </div>
                     )}
 
