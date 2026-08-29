@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import HelpModal from './HelpModal';
+import Chat from './Chat';
 
 /**
  * Composant de la salle de jeu
@@ -522,29 +523,40 @@ function GameRoom({ room, socket, playerName, onLeaveRoom }) {
             )}
 
             {/* Bouton démarrage */}
-            {isHost && (
-              <motion.button
-                onClick={handleStartGame}
-                disabled={currentRoom.players.length < 2}
-                className={`w-full py-4 px-6 rounded-xl font-black text-xl transition-all shadow-xl ${
-                  currentRoom.players.length >= 2
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-green-500/50'
-                    : 'bg-gray-400/30 text-gray-300 cursor-not-allowed'
-                }`}
-                whileHover={currentRoom.players.length >= 2 ? { scale: 1.02, y: -2 } : {}}
-                whileTap={currentRoom.players.length >= 2 ? { scale: 0.98 } : {}}
-              >
-                🚀 Démarrer la partie
-                {currentRoom.players.length < 2 && (
-                  <span className="text-sm font-normal ml-2">
-                    (min. 2 joueurs)
-                  </span>
-                )}
-              </motion.button>
+            {isHost && (() => {
+              const isSolo = currentRoom.settings?.gameMode === 'solo';
+              const minPlayers = isSolo ? 1 : 2;
+              const canStart = currentRoom.players.length >= minPlayers;
+              return (
+                <motion.button
+                  onClick={handleStartGame}
+                  disabled={!canStart}
+                  className={`w-full py-4 px-6 rounded-xl font-black text-xl transition-all shadow-xl ${
+                    canStart
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-green-500/50'
+                      : 'bg-gray-400/30 text-gray-300 cursor-not-allowed'
+                  }`}
+                  whileHover={canStart ? { scale: 1.02, y: -2 } : {}}
+                  whileTap={canStart ? { scale: 0.98 } : {}}
+                >
+                  🚀 Démarrer la partie
+                  {!canStart && (
+                    <span className="text-sm font-normal ml-2">
+                      (min. {minPlayers} joueur{minPlayers > 1 ? 's' : ''})
+                    </span>
+                  )}
+                </motion.button>
+              );
+            })()}
             )}
           </div>
         </div>
       </motion.div>
+
+      {/* Chat flottant (masqué en mode solo) */}
+      {currentRoom.settings?.gameMode !== 'solo' && (
+        <Chat socket={socket} roomCode={currentRoom.code} playerName={playerName} />
+      )}
     </div>
   );
 }
