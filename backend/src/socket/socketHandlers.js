@@ -114,6 +114,8 @@ export function setupSocketHandlers(io) {
       } else {
         // Si la partie est en cours, marquer comme déconnecté pour permettre la reconnexion
         const playerBefore = existingRoom.players.find(p => p.id === socket.id);
+        const wasPsychic = existingRoom.game && existingRoom.game.psychicId === socket.id;
+
         room = gameManager.markPlayerDisconnected(roomCode, socket.id);
 
         if (room) {
@@ -122,6 +124,21 @@ export function setupSocketHandlers(io) {
             playerId: socket.id,
             playerName: playerBefore?.name
           });
+
+          // Si le maître a été réassigné, envoyer la cible au nouveau maître
+          if (wasPsychic && room.game && room.game.psychicId && room.game.psychicId !== socket.id) {
+            const newPsychicSocket = io.sockets.sockets.get(room.game.psychicId);
+            if (newPsychicSocket) {
+              newPsychicSocket.emit('target-revealed', {
+                targetValue: room.game.targetValue
+              });
+              console.log(`🎯 Cible ${room.game.targetValue} envoyée au nouveau maître ${room.game.psychicId}`);
+            }
+            io.to(roomCode).emit('psychic-changed', {
+              newPsychicId: room.game.psychicId,
+              room
+            });
+          }
 
           // Nettoyer après 30 secondes si pas de reconnexion
           setTimeout(() => {
@@ -200,6 +217,27 @@ export function setupSocketHandlers(io) {
           gameManager.startRoundTimer(roomCode, 'psychic', onTick, onExpire);
         }
       }, 100);
+    });
+
+    // Le maître change la carte/thème actuelle
+    socket.on('refresh-card', ({ roomCode }) => {
+      console.log(`🔀 Demande de changement de carte dans ${roomCode} par ${socket.id}`);
+
+      const room = gameManager.refreshCurrentCard(roomCode, socket.id);
+
+      if (!room) {
+        socket.emit('refresh-card-error', {
+          success: false,
+          message: 'Impossible de changer la carte'
+        });
+        return;
+      }
+
+      // Informer tous les joueurs du changement de carte
+      io.to(roomCode).emit('card-refreshed', {
+        success: true,
+        room
+      });
     });
 
     // Le psychique soumet un indice
@@ -438,6 +476,7 @@ export function setupSocketHandlers(io) {
             }
           } else {
             // Si la partie est en cours, marquer comme déconnecté
+            const wasPsychic = room.game && room.game.psychicId === socket.id;
             const updatedRoom = gameManager.markPlayerDisconnected(room.code, socket.id);
             if (updatedRoom) {
               io.to(room.code).emit('room-updated', updatedRoom);
@@ -445,6 +484,21 @@ export function setupSocketHandlers(io) {
                 playerId: socket.id,
                 playerName: player.name
               });
+
+              // Si le maître a été réassigné, envoyer la cible au nouveau maître
+              if (wasPsychic && updatedRoom.game && updatedRoom.game.psychicId && updatedRoom.game.psychicId !== socket.id) {
+                const newPsychicSocket = io.sockets.sockets.get(updatedRoom.game.psychicId);
+                if (newPsychicSocket) {
+                  newPsychicSocket.emit('target-revealed', {
+                    targetValue: updatedRoom.game.targetValue
+                  });
+                  console.log(`🎯 Cible ${updatedRoom.game.targetValue} envoyée au nouveau maître ${updatedRoom.game.psychicId}`);
+                }
+                io.to(room.code).emit('psychic-changed', {
+                  newPsychicId: updatedRoom.game.psychicId,
+                  room: updatedRoom
+                });
+              }
 
               // Nettoyer après 30 secondes
               setTimeout(() => {
