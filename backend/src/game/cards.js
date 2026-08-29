@@ -26,7 +26,7 @@ export const CARDS = [
   { id: 20, left: "Pire Artiste", right: "Meilleur Artiste" },
   { id: 21, left: "Pire Loisir", right: "Meilleur Loisir" },
   { id: 22, left: "Pire Animal", right: "Meilleur Animal" },
-  { id: 23, left: "Pire Animal à 1vs1", right: "Meilleur Animal à 1vs1" },
+  { id: 23, left: "Animal impossible à battre", right: "Meilleur Animal à 1vs1" },
   { id: 24, left: "Très Froid", right: "Très Chaud" },
   { id: 25, left: "Très Ennuyeux", right: "Très Intéressant" },
   { id: 26, left: "Très Facile", right: "Très Difficile" },
@@ -54,7 +54,7 @@ export const CARDS = [
   { id: 48, left: "Personnage fictif détesté", right: "Personnage fictif adoré" },
   { id: 49, left: "Personne qui me détruirait", right: "Personne que je détruis" },
   { id: 50, left: "On vit mieux sans", right: "On vit mieux avec" },
-  { id: 51, left: "Meilleur froid", right: "Meilleur chaud" },
+  { id: 51, left: "Meilleur froid", right: "Meilleure chaud" },
   { id: 52, left: "Pire cadeau à un enfant", right: "Meilleur cadeau à un enfant" },
   { id: 53, left: "Pire Livre", right: "Meilleur Livre" },
   { id: 54, left: "Pire Anime", right: "Meilleur Anime" },
@@ -64,8 +64,6 @@ export const CARDS = [
   { id: 58, left: "Pire Animal de compagnie", right: "Meilleure Animal de compagnie" },
   { id: 59, left: "Meilleur en Hiver", right: "Meilleur en été" },
   { id: 60, left: "Pire Rôle au Loup-Garou", right: "Meilleur Rôle au Loup-Garou" },
-
-
 
 
 ];
@@ -89,12 +87,13 @@ export function drawRandomCard() {
 /**
  * Crée un deck mélangé de toutes les cartes
  * @param {Array} customCards - Cartes personnalisées optionnelles
- * @param {boolean} prioritizeCustomCards - Si true, place toutes les cartes custom au début
+ * @param {boolean} guaranteeCustomCard - Si true, garantit qu'au moins une carte custom est en première position
  * @returns {Array} Deck mélangé
  */
-export function createShuffledDeck(customCards = [], prioritizeCustomCards = false) {
+export function createShuffledDeck(customCards = [], guaranteeCustomCard = false) {
+  // Fusionner cartes officielles + custom
+  const allCards = [...CARDS];
   let customWithIds = [];
-  const standardCards = [...CARDS];
 
   if (customCards && customCards.length > 0) {
     // Ajouter les cartes custom avec IDs uniques
@@ -104,19 +103,21 @@ export function createShuffledDeck(customCards = [], prioritizeCustomCards = fal
       right: card.right,
       isCustom: true
     }));
+    allCards.push(...customWithIds);
   }
 
-  // Si on veut prioriser les cartes custom, les mettre au début
-  if (prioritizeCustomCards && customWithIds.length > 0) {
-    // Mélanger les cartes custom entre elles
-    const shuffledCustom = shuffleArray(customWithIds);
-    // Mélanger les cartes standard
-    const shuffledStandard = shuffleArray(standardCards);
-    // Retourner custom d'abord, puis standard
-    return [...shuffledCustom, ...shuffledStandard];
-  } else {
-    // Comportement normal : mélanger tout ensemble
-    const allCards = [...standardCards, ...customWithIds];
-    return shuffleArray(allCards);
+  const shuffled = shuffleArray(allCards);
+
+  // Si demandé, garantir qu'au moins une carte custom est en première position
+  if (guaranteeCustomCard && customWithIds.length > 0) {
+    // Trouver une carte custom dans le deck mélangé
+    const customCardIndex = shuffled.findIndex(card => card.isCustom);
+
+    if (customCardIndex > 0) {
+      // Échanger la première carte avec une carte custom
+      [shuffled[0], shuffled[customCardIndex]] = [shuffled[customCardIndex], shuffled[0]];
+    }
   }
+
+  return shuffled;
 }
