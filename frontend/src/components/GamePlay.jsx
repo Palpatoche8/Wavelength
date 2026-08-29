@@ -121,6 +121,10 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       }
     };
 
+    const handleCardRefreshed = ({ room: updatedRoom }) => {
+      setCurrentRoom(updatedRoom);
+    };
+
     socket.on('room-updated', handleRoomUpdated);
     socket.on('game-started', handleGameStarted);
     socket.on('target-revealed', handleTargetRevealed);
@@ -129,6 +133,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
     socket.on('round-started', handleRoundStarted);
     socket.on('game-finished', handleGameFinished);
     socket.on('game-reset', handleGameReset);
+    socket.on('card-refreshed', handleCardRefreshed);
 
     return () => {
       // Retirer uniquement les handlers de ce composant, pas ceux des autres
@@ -140,6 +145,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
       socket.off('round-started', handleRoundStarted);
       socket.off('game-finished', handleGameFinished);
       socket.off('game-reset', handleGameReset);
+      socket.off('card-refreshed', handleCardRefreshed);
     };
   }, [socket, isPsychic]);
 
@@ -168,6 +174,13 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   // Passer au tour suivant
   const handleNextRound = () => {
     socket.emit('next-round', {
+      roomCode: currentRoom.code
+    });
+  };
+
+  // Le maître change de thème/carte
+  const handleRefreshCard = () => {
+    socket.emit('refresh-card', {
       roomCode: currentRoom.code
     });
   };
@@ -615,9 +628,22 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
             {/* Carte actuelle - SEULEMENT le texte, pas de spectre */}
             {game?.currentCard && (
               <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-3 mb-3 border border-white/20">
-                <h3 className="text-center text-sm font-bold text-white mb-2">
-                  🎯 Thème
-                </h3>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <h3 className="text-center text-sm font-bold text-white">
+                    🎯 Thème
+                  </h3>
+                  {isPsychic && !game?.clue && (
+                    <motion.button
+                      onClick={handleRefreshCard}
+                      className="px-2 py-1 bg-purple-500/40 hover:bg-purple-500/60 text-white rounded-md text-xs font-semibold border border-purple-300/50 transition"
+                      whileHover={{ scale: 1.05, rotate: 180 }}
+                      whileTap={{ scale: 0.95 }}
+                      title="Changer de thème"
+                    >
+                      🔀
+                    </motion.button>
+                  )}
+                </div>
                 <div className="flex justify-between items-center gap-2">
                   <div className="flex-1 text-center">
                     <div className="bg-blue-100 rounded-lg p-2 border-2 border-blue-300">

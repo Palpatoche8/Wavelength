@@ -226,6 +226,37 @@ class GameManager {
       }
     }
 
+    // Si c'est le maître (psychique) qui se déconnecte pendant une partie active,
+    // réassigner le rôle à un autre joueur connecté pour ne pas bloquer la partie
+    const wasPsychic = room.game && room.game.psychicId === playerId;
+    if (wasPsychic && (room.gameState === 'playing' || room.gameState === 'revealing')) {
+      // Trouver un autre joueur connecté (en mode teams, préférer un joueur de la même équipe)
+      let candidatePlayers;
+      if (room.settings.gameMode === 'teams' && player.team) {
+        // Préférer un joueur de la même équipe
+        candidatePlayers = room.players.filter(p => !p.disconnected && p.id !== playerId && p.team === player.team);
+        // Si aucun dispo dans la même équipe, prendre n'importe qui
+        if (candidatePlayers.length === 0) {
+          candidatePlayers = room.players.filter(p => !p.disconnected && p.id !== playerId);
+        }
+      } else {
+        candidatePlayers = room.players.filter(p => !p.disconnected && p.id !== playerId);
+      }
+
+      if (candidatePlayers.length > 0) {
+        const newPsychic = candidatePlayers[0];
+        room.game.psychicId = newPsychic.id;
+        room.game.psychicIndex = room.players.findIndex(p => p.id === newPsychic.id);
+
+        // Réinitialiser l'indice et les réponses car le nouveau maître doit recommencer
+        room.game.clue = null;
+        room.game.guesses = [];
+        room.gameState = 'playing';
+
+        console.log(`🧙 ${newPsychic.name} est maintenant le maître de ${roomCode} (ancien maître déconnecté)`);
+      }
+    }
+
     return room;
   }
 
@@ -771,6 +802,41 @@ class GameManager {
 
     // Valider la cohérence du jeu (debug)
     this.validateGameState(roomCode);
+
+    return room;
+  }
+
+  /**
+   * Le maître change la carte/thème actuelle sans changer de tour
+   * Uniquement possible avant d'avoir donné un indice
+   * @param {string} roomCode - Code de la room
+   * @param {string} playerId - ID du joueur qui demande le changement
+   * @returns {Object|null} Room mise à jour ou null si erreur
+   */
+  refreshCurrentCard(roomCode, playerId) {
+    const room = this.rooms.get(roomCode);
+
+    if (!room || !room.game) {
+      return null;
+    }
+
+    // Vérifier que c'est le maître qui demande
+    if (room.game.psychicId !== playerId) {
+      console.log(`❌ ${playerId} n'est pas le maître, ne peut pas changer la carte`);
+      return null;
+    }
+
+    // Vérifier que l'indice n'a pas encore été donné
+    if (room.game.clue) {
+      console.log(`❌ L'indice a déjà été donné, impossible de changer la carte`);
+      return null;
+    }
+
+    // Passer à la carte suivante du deck (garde la même cible)
+    room.game.currentCardIndex = (room.game.currentCardIndex + 1) % room.game.deck.length;
+    room.game.currentCard = room.game.deck[room.game.currentCardIndex];
+
+    console.log(`🔀 Carte changée dans ${roomCode}: ${room.game.currentCard.left} ↔ ${room.game.currentCard.right}`);
 
     return room;
   }
