@@ -10,14 +10,48 @@ import customCardsManager from '../game/customCardsManager.js';
  * @param {Object} io - Instance Socket.IO
  */
 export function setupSocketHandlers(io) {
+  // Helper pour obtenir la liste des rooms publiques (waiting, non solo, non privées)
+  const getPublicRoomsList = () => {
+    return gameManager.getAllRooms()
+      .filter(room => room.gameState === 'waiting' && !room.settings?.isPrivate && room.settings?.gameMode !== 'solo')
+      .map(room => ({
+        code: room.code,
+        playerCount: room.players.filter(p => !p.disconnected).length,
+        hostName: room.players.find(p => p.isHost)?.name || 'Inconnu',
+        gameMode: room.settings?.gameMode || 'ffa',
+        createdAt: room.createdAt
+      }));
+  };
+
+  // Helper pour broadcast la liste à tous
+  const broadcastRoomsList = () => {
+    io.emit('rooms-list-updated', { rooms: getPublicRoomsList() });
+  };
+
   io.on('connection', (socket) => {
     console.log(`🔌 Nouveau client connecté: ${socket.id}`);
 
+    // Envoyer la liste des rooms disponibles au nouveau client
+    socket.emit('rooms-list-updated', { rooms: getPublicRoomsList() });
+
+    // Récupérer la liste des rooms publiques à la demande
+    socket.on('list-rooms', () => {
+      socket.emit('rooms-list-updated', { rooms: getPublicRoomsList() });
+    });
+
     // Créer une nouvelle room
-    socket.on('create-room', ({ playerName }) => {
+    socket.on('create-room', ({ playerName, isPrivate, gameMode }) => {
       console.log(`📝 Demande de création de room par ${playerName}`);
 
       const { roomCode, room } = gameManager.createRoom(socket.id, playerName);
+
+      // Appliquer les paramètres initiaux
+      if (isPrivate) {
+        room.settings.isPrivate = true;
+      }
+      if (gameMode) {
+        room.settings.gameMode = gameMode;
+      }
 
       // Rejoindre la room Socket.IO
       socket.join(roomCode);
@@ -31,6 +65,9 @@ export function setupSocketHandlers(io) {
 
       // Informer tous les clients de la room
       io.to(roomCode).emit('room-updated', room);
+
+      // Diffuser la mise à jour de la liste des rooms publiques
+      broadcastRoomsList();
     });
 
     // Rejoindre une room existante
@@ -83,6 +120,9 @@ export function setupSocketHandlers(io) {
         playerId: socket.id,
         playerName
       });
+
+      // Diffuser la mise à jour de la liste (playerCount change)
+      broadcastRoomsList();
     });
 
     // Quitter une room
@@ -151,6 +191,9 @@ export function setupSocketHandlers(io) {
       }
 
       socket.emit('left-room', { success: true });
+
+      // Diffuser la mise à jour de la liste
+      broadcastRoomsList();
     });
 
     // ========== GESTION DU JEU ==========
@@ -175,6 +218,9 @@ export function setupSocketHandlers(io) {
         success: true,
         room
       });
+
+      // Diffuser la liste (la room n'est plus 'waiting')
+      broadcastRoomsList();
 
       // Délai pour permettre au front de monter GamePlay avant de recevoir round-started
       setTimeout(() => {
@@ -429,6 +475,9 @@ export function setupSocketHandlers(io) {
         success: true,
         room
       });
+
+      // La room redevient 'waiting'
+      broadcastRoomsList();
     });
 
     // Mettre à jour les paramètres d'une room (avant de démarrer)
@@ -508,11 +557,42 @@ export function setupSocketHandlers(io) {
                 } else {
                   console.log(`🗑️ Room ${room.code} supprimée après nettoyage`);
                 }
+                broadcastRoomsList();
               }, 30000); // 30 secondes
             }
           }
         }
       });
+
+      // Diffuser la mise à jour de la liste
+      broadcastRoomsList();
+    });
+
+    // ========== CHAT ==========
+
+    // Envoyer un message dans le chat de la room
+    socket.on('chat-message', ({ roomCode, message }) => {
+      if (!roomCode || !message || typeof message !== 'string') return;
+
+      const trimmed = message.trim().slice(0, 200);
+      if (!trimmed) return;
+
+      const room = gameManager.getRoom(roomCode);
+      if (!room) return;
+
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player) return;
+
+      const chatMessage = {
+        id: `${Date.now()}-${socket.id}`,
+        playerId: socket.id,
+        playerName: player.name,
+        team: player.team || null,
+        message: trimmed,
+        timestamp: new Date().toISOString()
+      };
+
+      io.to(roomCode).emit('chat-message', chatMessage);
     });
 
     // ========== CUSTOM CARDS ==========

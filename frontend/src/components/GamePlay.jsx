@@ -5,6 +5,7 @@ import Timer from './ui/Timer';
 import ProgressBar from './ui/ProgressBar';
 import ConfettiEffect from './ui/ConfettiEffect';
 import ScorePulse from './ui/ScorePulse';
+import Chat from './Chat';
 import useTimer from '../hooks/useTimer';
 import useHaptic from '../hooks/useHaptic';
 
@@ -30,6 +31,7 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
   const psychicPlayer = currentRoom?.players.find(p => p.id === game?.psychicId);
   const gameMode = currentRoom?.settings?.gameMode || 'ffa';
   const isTeamsMode = gameMode === 'teams';
+  const isSoloMode = gameMode === 'solo';
   const currentTeam = game?.currentTeam;
   const isMyTeamPlaying = isTeamsMode && currentPlayer?.team === currentTeam;
   const canPlay = !isPsychic && (!isTeamsMode || isMyTeamPlaying);
@@ -662,15 +664,15 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
               </div>
             )}
 
-            {/* Zone psychique */}
-            {isPsychic && !game?.clue && (
+            {/* Zone psychique (masquée en mode solo car il n'y a pas d'indice à donner) */}
+            {isPsychic && !game?.clue && !isSoloMode && (
               <div className="bg-purple-100 border-2 border-purple-400 rounded-lg p-3 mb-3">
                 <h3 className="text-lg font-bold text-purple-800 mb-2">
                    Vous êtes le Maitre !
                 </h3>
                 <p className="text-gray-700 mb-1">
                   La valeur secrète est : <strong className="text-2xl text-purple-900">
-                    {targetValue !== null ? targetValue : '...'}
+                    {targetValue !== null ? targetValue : (game?.targetValue !== null && game?.targetValue !== undefined ? game.targetValue : '...')}
                   </strong>
                 </p>
                 <p className="text-xs text-gray-600 mb-2">
@@ -700,13 +702,48 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
               </div>
             )}
 
+            {/* Zone solo - le maître voit sa valeur et peut passer directement au tour suivant */}
+            {isSoloMode && (
+              <div className="bg-purple-100 border-2 border-purple-400 rounded-lg p-3 mb-3">
+                <h3 className="text-lg font-bold text-purple-800 mb-2">
+                  🎮 Mode Solo
+                </h3>
+                <p className="text-gray-700 mb-2">
+                  La valeur secrète est : <strong className="text-3xl text-purple-900">
+                    {targetValue !== null ? targetValue : (game?.targetValue !== null && game?.targetValue !== undefined ? game.targetValue : '...')}
+                  </strong>
+                </p>
+                <p className="text-xs text-gray-600 mb-3">
+                  Faites deviner cette valeur aux autres joueurs à partir du thème ci-dessus. Passez ensuite le téléphone !
+                </p>
+                <div className="flex gap-2">
+                  <motion.button
+                    onClick={handleNextRoundSameCard}
+                    className="flex-1 px-4 py-2 text-sm bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-semibold transition"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    🔄 Même thème, nouvelle valeur
+                  </motion.button>
+                  <motion.button
+                    onClick={handleNextRound}
+                    className="flex-1 px-4 py-2 text-sm bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-semibold transition"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    ▶ Thème suivant
+                  </motion.button>
+                </div>
+              </div>
+            )}
+
             {/* Cadran */}
             {!showResult && (
               <div className="bg-white/5 backdrop-blur-lg rounded-2xl shadow-2xl p-4 mb-3 border border-white/10">
                 <Dial
                   value={dialValue}
                   onValueChange={setDialValue}
-                  targetValue={isPsychic ? targetValue : null}
+                  targetValue={isPsychic ? (targetValue ?? game?.targetValue ?? null) : null}
                   showTarget={isPsychic}
                   showColoredZones={isPsychic && !game?.clue}
                   disabled={isPsychic || !game?.clue || (isTeamsMode && !isMyTeamPlaying)}
@@ -894,6 +931,11 @@ function GamePlay({ room, socket, playerName, onLeaveRoom }) {
           </div>
         </div>
       </div>
+
+      {/* Chat flottant (masqué en mode solo) */}
+      {gameMode !== 'solo' && (
+        <Chat socket={socket} roomCode={currentRoom.code} playerName={playerName} />
+      )}
     </div>
   );
 }

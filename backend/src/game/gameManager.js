@@ -352,14 +352,16 @@ class GameManager {
       return null;
     }
 
-    if (room.players.length < 2) {
-      console.log(`❌ Pas assez de joueurs dans ${roomCode}`);
-      return null;
-    }
-
     // Fusionner les settings fournis avec les settings actuels de la room
     if (settings && Object.keys(settings).length > 0) {
       room.settings = { ...room.settings, ...settings };
+    }
+
+    // Mode solo : accepter 1 joueur minimum. Autres modes : 2 joueurs minimum.
+    const minPlayers = room.settings.gameMode === 'solo' ? 1 : 2;
+    if (room.players.length < minPlayers) {
+      console.log(`❌ Pas assez de joueurs dans ${roomCode}`);
+      return null;
     }
 
     // Si mode teams, assigner les équipes
@@ -391,6 +393,10 @@ class GameManager {
       const randomBluePlayer = blueTeamPlayers[Math.floor(Math.random() * blueTeamPlayers.length)];
       firstPsychicId = randomBluePlayer.id;
       firstPsychicIndex = room.players.findIndex(p => p.id === firstPsychicId);
+    } else if (room.settings.gameMode === 'solo') {
+      // Mode solo : le seul joueur est toujours le maître
+      firstPsychicIndex = 0;
+      firstPsychicId = room.players[0].id;
     } else {
       // Mode FFA : psychique aléatoire
       firstPsychicIndex = Math.floor(Math.random() * room.players.length);
@@ -755,6 +761,10 @@ class GameManager {
       game.psychicIndex = room.players.findIndex(p => p.id === psychic.id);
 
       console.log(`   Équipe ${game.currentTeam} joue`);
+    } else if (room.settings.gameMode === 'solo') {
+      // Mode solo : garder le même psychique (le seul joueur)
+      game.psychicIndex = 0;
+      game.psychicId = room.players[0].id;
     } else {
       // Mode chacun pour soi
       if (game.currentRound === 1) {
@@ -891,6 +901,10 @@ class GameManager {
       game.psychicIndex = room.players.findIndex(p => p.id === psychic.id);
 
       console.log(`   Équipe ${game.currentTeam} joue`);
+    } else if (room.settings.gameMode === 'solo') {
+      // Mode solo : garder le même psychique
+      game.psychicIndex = 0;
+      game.psychicId = room.players[0].id;
     } else {
       // Mode chacun pour soi : rotation normale
       game.psychicIndex = (game.psychicIndex + 1) % room.players.length;

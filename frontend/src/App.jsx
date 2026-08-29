@@ -70,12 +70,16 @@ function App() {
   }, [socket]);
 
   // Gestion de la création d'une room
-  const handleCreateRoom = (name) => {
+  const handleCreateRoom = (name, options = {}) => {
     if (!socket || !name) return;
 
     setPlayerName(name);
 
-    socket.emit('create-room', { playerName: name });
+    socket.emit('create-room', {
+      playerName: name,
+      isPrivate: options.isPrivate || false,
+      gameMode: options.gameMode || 'ffa'
+    });
 
     socket.once('room-created', ({ roomCode, room }) => {
       console.log('🎮 Room créée:', roomCode);
@@ -149,6 +153,7 @@ function App() {
           onCreateRoom={handleCreateRoom}
           onJoinRoom={handleJoinRoom}
           isConnected={connectionStatus === 'connected'}
+          socket={socket}
         />
       ) : currentRoom.gameState === 'waiting' ? (
         <GameRoom
