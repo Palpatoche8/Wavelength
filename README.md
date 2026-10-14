@@ -1,8 +1,8 @@
-# 🎮 WaveLength - Jeu Multijoueur
+#  WaveLength - Jeu Multijoueur
 
 Un jeu multijoueur inspiré de WaveLength où les joueurs doivent deviner la position d'un curseur sur une échelle entre deux concepts opposés.
 
-## 📋 Architecture
+##  Architecture
 
 - **Monorepo** avec structure frontend/backend séparée
 - **Frontend**: React + Vite + TailwindCSS
@@ -10,7 +10,7 @@ Un jeu multijoueur inspiré de WaveLength où les joueurs doivent deviner la pos
 - **Temps réel**: Communication WebSocket via Socket.IO
 - **Base de données**: En mémoire (MVP)
 
-## 📁 Structure du projet
+##  Structure du projet
 
 ```
 wavelength-game/
@@ -41,7 +41,7 @@ wavelength-game/
 └── package.json              # Scripts racine
 ```
 
-## 🚀 Démarrage rapide
+##  Démarrage rapide
 
 ### Prérequis
 
@@ -94,9 +94,9 @@ npm run dev:frontend
 ```
 L'application s'ouvre sur http://localhost:5173
 
-## 🎯 Fonctionnalités actuelles (MVP)
+## Fonctionnalités actuelles (MVP)
 
-### ✅ Implémenté
+###  Implémenté
 
 - [x] Connexion WebSocket temps réel
 - [x] Création de parties avec code unique (4 lettres)
@@ -108,7 +108,7 @@ L'application s'ouvre sur http://localhost:5173
 - [x] Interface utilisateur responsive avec TailwindCSS
 - [x] Indicateur de statut de connexion
 
-### 🚧 À venir
+###  À venir
 
 - [ ] Logique de jeu WaveLength complète
 - [ ] Système d'équipes
@@ -117,7 +117,7 @@ L'application s'ouvre sur http://localhost:5173
 - [ ] Chat entre joueurs
 - [ ] Persistance des données
 
-## 🛠️ Scripts disponibles
+##  Scripts disponibles
 
 ### Racine du projet
 
@@ -145,7 +145,7 @@ npm run build    # Build de production
 npm run preview  # Prévisualiser le build
 ```
 
-## 🔧 Technologies utilisées
+##  Technologies utilisées
 
 ### Frontend
 - **React 18** - Bibliothèque UI
@@ -159,7 +159,7 @@ npm run preview  # Prévisualiser le build
 - **Socket.IO** - WebSocket temps réel
 - **CORS** - Gestion des origines multiples
 
-## 📡 API WebSocket
+##  API WebSocket
 
 ### Événements émis par le client
 
@@ -180,7 +180,7 @@ npm run preview  # Prévisualiser le build
 | `player-left` | `{ playerId: string }` | Joueur parti |
 | `join-room-error` | `{ success: false, message: string }` | Erreur de jonction |
 
-## 🎮 Comment jouer
+##  Comment jouer
 
 1. **Créer une partie** :
    - Entrez votre nom
@@ -197,7 +197,7 @@ npm run preview  # Prévisualiser le build
    - L'hôte (premier joueur) peut démarrer la partie
    - Minimum 2 joueurs requis (4 recommandés)
 
-## 🐛 Dépannage
+##  Dépannage
 
 ### Le backend ne démarre pas
 
@@ -219,7 +219,7 @@ Réinstallez les dépendances :
 npm run install:all
 ```
 
-## 📝 Notes de développement
+##  Notes de développement
 
 - Les rooms sont stockées en mémoire et disparaissent au redémarrage
 - Le premier joueur d'une room devient automatiquement l'hôte
@@ -227,9 +227,9 @@ npm run install:all
 - Les rooms vides sont automatiquement supprimées
 - La déconnexion d'un joueur le retire automatiquement de sa room
 
-## 🎴 Cartes personnalisées
+##  Cartes personnalisées
 
-### Spectre de concepts (à implémenter)
+### Spectre de concepts
 
 - Meilleure Chanson ↔ Pire Chanson
 - Meilleur Jeu vidéo ↔ Pire Jeu vidéo
@@ -258,10 +258,6 @@ npm run install:all
 ### Design préféré
 - Couleurs : bleu/orange
 - Style minimaliste
-
-## 🤝 Contribution
-
-Ce projet est un MVP. Les contributions sont les bienvenues !
 
 ## 📄 Licence
 
